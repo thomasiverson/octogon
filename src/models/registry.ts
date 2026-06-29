@@ -24,10 +24,18 @@ export class ModelRegistry {
   public async refresh(): Promise<ModelInfo[]> {
     const models = await vscode.lm.selectChatModels({ vendor: 'copilot' });
     this.cache.clear();
+    const seen = new Set<string>();
+    const infos: ModelInfo[] = [];
     for (const model of models) {
       this.cache.set(model.id, model);
+      // The picker can list the same model more than once; collapse duplicates
+      // by display name so each model appears as a single chip.
+      const key = (model.name || model.id).toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      infos.push(toModelInfo(model));
     }
-    return models.map(toModelInfo);
+    return infos;
   }
 
   public get(id: string): vscode.LanguageModelChat | undefined {

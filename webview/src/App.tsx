@@ -5,6 +5,7 @@ import type {
   CostEstimate,
   Leaderboard as LeaderboardData,
   ModelInfo,
+  ModelStat,
   OctogonConfig,
   RunOptions,
   RunRecord,
@@ -23,6 +24,7 @@ import { ContextDisclosure } from './components/ContextDisclosure';
 import { JudgeBar } from './components/JudgeBar';
 import { VerifyBar } from './components/VerifyBar';
 import { HistoryPanel } from './components/HistoryPanel';
+import { ModelStatsPanel } from './components/ModelStatsPanel';
 import { CollapsibleSection } from './components/CollapsibleSection';
 
 interface Notice {
@@ -68,6 +70,8 @@ export function App() {
   const [history, setHistory] = useState<RunSummary[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [loadedRun, setLoadedRun] = useState<RunRecord | null>(null);
+  const [showStats, setShowStats] = useState(false);
+  const [modelStats, setModelStats] = useState<ModelStat[]>([]);
   const [modelsOpen, setModelsOpen] = useState(true);
   const [contextOpen, setContextOpen] = useState(false);
   const [scoringOpen, setScoringOpen] = useState(false);
@@ -175,6 +179,9 @@ export function App() {
           break;
         case 'history':
           setHistory(msg.runs);
+          break;
+        case 'modelStats':
+          setModelStats(msg.stats);
           break;
         case 'historyRun': {
           const run = msg.run;
@@ -318,6 +325,11 @@ export function App() {
     setShowHistory((s) => !s);
   };
 
+  const toggleStats = () => {
+    if (!showStats) post({ type: 'loadModelStats' });
+    setShowStats((s) => !s);
+  };
+
   const exitHistory = () => {
     setLoadedRun(null);
     dispatch({ type: 'reset' });
@@ -372,6 +384,12 @@ export function App() {
         <span className="text-xs text-vscode-desc">compare cost and accuracy, side by side</span>
         <button
           className="ml-auto rounded px-2 py-0.5 text-xs text-vscode-link hover:bg-vscode-list-hover"
+          onClick={toggleStats}
+        >
+          {showStats ? 'Hide stats' : 'Stats'}
+        </button>
+        <button
+          className="rounded px-2 py-0.5 text-xs text-vscode-link hover:bg-vscode-list-hover"
           onClick={toggleHistory}
         >
           {showHistory ? 'Hide history' : 'History'}
@@ -399,6 +417,14 @@ export function App() {
           onExport={(id, format) => post({ type: 'exportRun', id, format })}
           onClear={() => post({ type: 'clearHistory' })}
           onClose={() => setShowHistory(false)}
+        />
+      )}
+
+      {showStats && (
+        <ModelStatsPanel
+          stats={modelStats}
+          onRefresh={() => post({ type: 'loadModelStats' })}
+          onClose={() => setShowStats(false)}
         />
       )}
 

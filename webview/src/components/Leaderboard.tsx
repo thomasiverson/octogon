@@ -36,6 +36,16 @@ export function Leaderboard({ leaderboard, nameFor }: LeaderboardProps) {
       value: String(leaderboard.highestRated.value)
     });
   }
+  if (leaderboard.bestValue) {
+    const unit = leaderboard.bestValue.basis === 'rating' ? '★' : 'pt';
+    items.push({
+      key: 'value',
+      icon: '💎',
+      label: 'Best value',
+      modelId: leaderboard.bestValue.modelId,
+      value: `${formatUsd(leaderboard.bestValue.value)}/${unit}`
+    });
+  }
 
   if (items.length === 0) return null;
 

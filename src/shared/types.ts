@@ -17,6 +17,10 @@ export interface ModelInfo {
   vendor: string;
   /** Maximum input tokens (context window) reported by the model. */
   maxInputTokens: number;
+  /** Input rate per 1M tokens (USD), resolved from the pricing table. */
+  inputRate?: number;
+  /** Output rate per 1M tokens (USD), resolved from the pricing table. */
+  outputRate?: number;
 }
 
 export interface TokenCounts {
@@ -119,6 +123,28 @@ export interface Leaderboard {
   cheapest?: LeaderboardEntry;
   fastest?: LeaderboardEntry;
   highestRated?: LeaderboardEntry;
+  /** Lowest cost-per-quality (USD per rating star or judge point). */
+  bestValue?: LeaderboardEntry & { basis: 'rating' | 'judge' };
+}
+
+/** Aggregate performance for one model across saved runs. */
+export interface ModelStat {
+  modelId: string;
+  modelName: string;
+  /** Number of saved responses for this model. */
+  runs: number;
+  /** Fraction of responses that errored (0..1). */
+  errorRate: number;
+  avgLatencyMs: number | null;
+  avgTokensPerSec: number | null;
+  avgCostUsd: number | null;
+  avgCredits: number | null;
+  /** Fraction of runs where this model was picked winner (0..1). */
+  winRate: number;
+  avgRating: number | null;
+  ratedCount: number;
+  avgJudge: number | null;
+  judgedCount: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -186,6 +212,7 @@ export type ExtensionToWebview =
   | { type: 'verifyError'; runId: string; modelId: string; message: string }
   | { type: 'history'; runs: RunSummary[] }
   | { type: 'historyRun'; run: RunRecord }
+  | { type: 'modelStats'; stats: ModelStat[] }
   | { type: 'attachedFiles'; files: string[] }
   | { type: 'notice'; level: 'info' | 'warn' | 'error'; message: string };
 
@@ -208,5 +235,6 @@ export type WebviewToExtension =
   | { type: 'reloadRun'; id: string }
   | { type: 'exportRun'; id: string; format: 'json' | 'markdown' }
   | { type: 'clearHistory' }
+  | { type: 'loadModelStats' }
   | { type: 'runVerify'; runId: string; modelId?: string }
   | { type: 'log'; message: string };

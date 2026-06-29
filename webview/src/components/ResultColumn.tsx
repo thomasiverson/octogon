@@ -1,7 +1,8 @@
 import type { ColumnState } from '../state';
 import { Badge } from './Badge';
 import { StarRating } from './StarRating';
-import { formatCredits, formatLatency, formatTokens, formatUsd } from '../format';
+import { tokensPerSecond } from '../../../src/shared/metrics';
+import { formatCredits, formatLatency, formatThroughput, formatTokens, formatUsd } from '../format';
 
 interface ResultColumnProps {
   title: string;
@@ -39,6 +40,7 @@ export function ResultColumn({
   const cost = result?.cost;
   const judge = result?.judge;
   const verify = result?.verify;
+  const tps = result ? tokensPerSecond(result) : null;
   const showFooter = Boolean(result) && status !== 'error';
 
   return (
@@ -78,6 +80,15 @@ export function ResultColumn({
                   value={formatLatency(result.timeToFirstTokenMs)}
                   title={`Time to first token — how long until the model produced its first token, i.e. how responsive it felt (${formatLatency(
                     result.timeToFirstTokenMs
+                  )}).`}
+                />
+              )}
+              {tps !== null && (
+                <Badge
+                  label="speed"
+                  value={formatThroughput(tps)}
+                  title={`Throughput — output tokens generated per second during streaming, excluding time-to-first-token (${formatThroughput(
+                    tps
                   )}).`}
                 />
               )}

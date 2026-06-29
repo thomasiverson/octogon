@@ -5,7 +5,7 @@ import {
   ContextRef,
   CostEstimate,
   HISTORY_SCHEMA_VERSION,
-  Leaderboard,
+  ModelInfo,
   ModelResult,
   OctogonConfig,
   RunOptions,
@@ -13,7 +13,7 @@ import {
   WebviewToExtension
 } from './shared/types';
 import { loadPricingTable, PricingTable } from './cost/pricing';
-import { tokenCost, ModelIdentity } from './cost/costCalculator';
+import { resolveRate, tokenCost, ModelIdentity } from './cost/costCalculator';
 import { ModelRegistry } from './models/registry';
 import { buildMessages, countMessageTokens, runComparison, RunHandlers } from './runner/orchestrator';
 import {
@@ -25,10 +25,12 @@ import {
 } from './context/contextBuilder';
 import { retrieve } from './context/retrieval';
 import { buildJudgePrompt, JudgeInput, parseJudgeResponse } from './scoring/judge';
-import { clampRating, highestRated } from './scoring/manual';
+import { clampRating } from './scoring/manual';
+import { computeLeaderboard } from './shared/leaderboard';
 import { verifyResponse } from './scoring/verify';
 import { HistoryStore } from './store/historyStore';
 import { buildMarkdownSummary } from './store/exporter';
+import { computeModelStats } from './store/modelStats';
 
 interface RunState {
   runId: string;
@@ -143,6 +145,9 @@ export class OctogonController {
       case 'clearHistory':
         await this.clearHistory();
         break;
+      case 'loadModelStats':
+        await this.handleLoadModelStats();
+        break;
       case 'runVerify':
         await this.handleVerify(msg.runId, msg.modelId);
         break;
@@ -195,9 +200,10 @@ export class OctogonController {
     }
   }
 
-  private async safeEnumerate() {
+  private async safeEnumerate(): Promise<ModelInfo[]> {
     try {
-      return await this.registry.refresh();
+      const models = await this.registry.refresh();
+      return await this.enrichRates(models);
     } catch (err) {
       console.error('[octogon] selectChatModels failed:', err);
       await this.panel.post({
@@ -207,6 +213,18 @@ export class OctogonController {
       });
       return [];
     }
+  }
+
+  /** Attach input/output $/1M rates to each model for the picker. */
+  private async enrichRates(models: ModelInfo[]): Promise<ModelInfo[]> {
+    const table = await this.getPricing();
+    if (!table) return models;
+    return models.map((m) => {
+      const resolved = resolveRate(table, { id: m.id, family: m.family, name: m.name });
+      return resolved
+        ? { ...m, inputRate: resolved.rate.input, outputRate: resolved.rate.output }
+        : m;
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -479,6 +497,16 @@ export class OctogonController {
   private async sendHistory(): Promise<void> {
     const runs = await this.store.list();
     await this.panel.post({ type: 'history', runs });
+  }
+
+  private async handleLoadModelStats(): Promise<void> {
+    const summaries = await this.store.list();
+    const records: RunRecord[] = [];
+    for (const summary of summaries) {
+      const record = await this.store.load(summary.id);
+      if (record) records.push(record);
+    }
+    await this.panel.post({ type: 'modelStats', stats: computeModelStats(records) });
   }
 
   private async handleReloadRun(id: string): Promise<void> {
@@ -782,37 +810,4 @@ export class OctogonController {
     await this.sendHistory();
     await this.panel.post({ type: 'notice', level: 'info', message: 'Run history cleared.' });
   }
-}
-
-/** Cheapest (by token USD, populated in Phase 2) + fastest (by latency). */
-export function computeLeaderboard(results: ModelResult[]): Leaderboard {
-  const ok = results.filter((r) => !r.error);
-  const leaderboard: Leaderboard = {};
-
-  const fastest = ok
-    .filter((r) => r.latencyMs > 0)
-    .reduce<ModelResult | undefined>(
-      (best, r) => (!best || r.latencyMs < best.latencyMs ? r : best),
-      undefined
-    );
-  if (fastest) {
-    leaderboard.fastest = { modelId: fastest.modelId, value: fastest.latencyMs };
-  }
-
-  const cheapest = ok
-    .filter((r) => r.cost?.rateAvailable)
-    .reduce<ModelResult | undefined>(
-      (best, r) => (!best || r.cost!.usd < best.cost!.usd ? r : best),
-      undefined
-    );
-  if (cheapest && cheapest.cost) {
-    leaderboard.cheapest = { modelId: cheapest.modelId, value: cheapest.cost.usd };
-  }
-
-  const rated = highestRated(results);
-  if (rated) {
-    leaderboard.highestRated = rated;
-  }
-
-  return leaderboard;
 }

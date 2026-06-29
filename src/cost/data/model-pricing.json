@@ -1,6 +1,6 @@
 {
   "source": "GitHub Copilot — Models and pricing (https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)",
-  "lastUpdated": "2026-06-25",
+  "lastUpdated": "2026-06-29",
   "billingModel": "usage-based (effective 2026-06-01)",
   "currency": "USD",
   "unit": "per_1m_tokens",
@@ -15,6 +15,8 @@
     "Keys are canonical model ids; map vscode.lm model id/family to these keys in the cost calculator."
   ],
   "models": {
+    "gpt-4o":          { "provider": "OpenAI",    "input": 2.50, "cachedInput": 1.25,  "output": 10.00 },
+    "gpt-4o-mini":     { "provider": "OpenAI",    "input": 0.15, "cachedInput": 0.075, "output": 0.60 },
     "gpt-5-mini":      { "provider": "OpenAI",    "input": 0.25, "cachedInput": 0.025, "output": 2.00 },
     "gpt-5.3-codex":   { "provider": "OpenAI",    "input": 1.75, "cachedInput": 0.175, "output": 14.00 },
     "gpt-5.4":         { "provider": "OpenAI",    "input": 2.50, "cachedInput": 0.25,  "output": 15.00,

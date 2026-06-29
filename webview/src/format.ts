@@ -27,3 +27,18 @@ export function formatCredits(credits: number): string {
   if (credits < 1) return credits.toFixed(2);
   return credits.toLocaleString(undefined, { maximumFractionDigits: 1 });
 }
+
+export function formatThroughput(tps: number): string {
+  if (tps >= 100) return `${Math.round(tps)} tok/s`;
+  return `${tps.toFixed(1)} tok/s`;
+}
+
+/** Compact dollar amount for a per-1M-token rate (e.g. 0.25 → "$0.25", 15 → "$15"). */
+export function formatRate(rate: number): string {
+  if (rate < 1) return `$${rate.toFixed(rate < 0.1 ? 3 : 2)}`;
+  return `$${Number.isInteger(rate) ? rate.toFixed(0) : rate.toFixed(2)}`;
+}
+
+export function formatPercent(fraction: number): string {
+  return `${Math.round(fraction * 100)}%`;
+}

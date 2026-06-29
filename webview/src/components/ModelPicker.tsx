@@ -1,5 +1,5 @@
 import type { ModelInfo } from '../../../src/shared/types';
-import { formatContextWindow } from '../format';
+import { formatContextWindow, formatRate } from '../format';
 
 interface ModelPickerProps {
   models: ModelInfo[];
@@ -43,6 +43,16 @@ export function ModelPicker({ models, selected, onToggle, disabled }: ModelPicke
             </span>
             <span className="font-medium">{model.name}</span>
             <span className="opacity-60">{formatContextWindow(model.maxInputTokens)}</span>
+            {model.inputRate !== undefined && model.outputRate !== undefined && (
+              <span
+                className="opacity-60"
+                title={`Token rates per 1M — input ${formatRate(model.inputRate)} / output ${formatRate(
+                  model.outputRate
+                )}`}
+              >
+                {formatRate(model.inputRate)}/{formatRate(model.outputRate)}
+              </span>
+            )}
           </button>
         );
       })}
