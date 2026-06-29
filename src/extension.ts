@@ -1,0 +1,33 @@
+import * as vscode from 'vscode';
+import { ComparePanel } from './webview/panel';
+import { OctogonController } from './controller';
+
+let controller: OctogonController | undefined;
+
+export function activate(context: vscode.ExtensionContext): void {
+  const open = vscode.commands.registerCommand('octogon.open', () => {
+    const panel = ComparePanel.createOrShow(context.extensionUri);
+    if (!controller) {
+      controller = new OctogonController(panel, context);
+      const sub = panel.onDidDispose(() => {
+        controller = undefined;
+        sub.dispose();
+      });
+    }
+    panel.reveal();
+  });
+
+  const clearHistory = vscode.commands.registerCommand('octogon.clearHistory', async () => {
+    if (controller) {
+      await controller.clearHistory();
+    } else {
+      await vscode.window.showInformationMessage('Open Octogon first to manage run history.');
+    }
+  });
+
+  context.subscriptions.push(open, clearHistory);
+}
+
+export function deactivate(): void {
+  // Nothing to clean up; the panel disposes itself.
+}

@@ -1,0 +1,108 @@
+{
+  "name": "octogon",
+  "displayName": "Octogon",
+  "description": "Compare the cost and accuracy of your GitHub Copilot models, side by side, against any open repository.",
+  "version": "0.0.1",
+  "license": "MIT",
+  "publisher": "octogon",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thomasiverson/octogon.git"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "AI",
+    "Machine Learning",
+    "Other"
+  ],
+  "keywords": [
+    "copilot",
+    "models",
+    "cost",
+    "comparison",
+    "llm"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onCommand:octogon.open"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "octogon.open",
+        "title": "Octogon: Open",
+        "category": "Octogon"
+      },
+      {
+        "command": "octogon.clearHistory",
+        "title": "Octogon: Clear Run History",
+        "category": "Octogon"
+      }
+    ],
+    "configuration": {
+      "title": "Octogon",
+      "properties": {
+        "octogon.pricingTablePath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Absolute path to an override token-pricing JSON file. When empty, the bundled pricing table is used. The override must match the bundled schema (`aiCreditUsd`, `unit`, `models`)."
+        },
+        "octogon.expectedOutputTokens": {
+          "type": "number",
+          "default": 800,
+          "minimum": 1,
+          "markdownDescription": "Assumed output tokens per model used for the **pre-run** cost estimate. The post-run cost reflects actual tokens."
+        },
+        "octogon.retrieval.topK": {
+          "type": "number",
+          "default": 5,
+          "minimum": 0,
+          "maximum": 50,
+          "markdownDescription": "Number of snippets pulled by lightweight repo retrieval when retrieval is enabled."
+        },
+        "octogon.judgeModelId": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Preferred model id for LLM-as-judge scoring. When empty, Octogon picks a strong available model."
+        },
+        "octogon.verifyCommand": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Build/test command used for **automated verification** of code tasks (e.g. `npm test`). Default unset (verification disabled). Always shown before running."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build:extension": "node esbuild.js",
+    "build:webview": "vite build --config webview/vite.config.ts",
+    "build": "npm run build:extension && npm run build:webview",
+    "watch:extension": "node esbuild.js --watch",
+    "watch:webview": "vite build --watch --config webview/vite.config.ts",
+    "compile": "tsc --noEmit -p ./ && tsc --noEmit -p ./webview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@types/vscode": "^1.90.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "@vscode/vsce": "^2.27.0",
+    "autoprefixer": "^10.4.19",
+    "esbuild": "^0.21.5",
+    "postcss": "^8.4.38",
+    "tailwindcss": "^3.4.4",
+    "typescript": "^5.5.2",
+    "vite": "^5.3.1",
+    "vitest": "^1.6.0"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}
