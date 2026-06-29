@@ -43,7 +43,7 @@ export function ResultColumn({
 
   return (
     <div
-      className={`flex h-full min-w-[300px] flex-1 flex-col rounded border bg-vscode-panel-bg ${
+      className={`flex min-w-[300px] flex-1 flex-col rounded border bg-vscode-panel-bg ${
         isWinner ? 'border-yellow-400' : 'border-vscode-border'
       }`}
     >
@@ -92,7 +92,7 @@ export function ResultColumn({
         </div>
       </div>
 
-      <div className="min-h-[120px] flex-1 overflow-auto p-2.5">
+      <div className="min-h-[120px] flex-1 p-2.5">
         {status === 'error' ? (
           <div className="rounded border border-red-500/40 bg-red-500/10 p-2 text-xs text-vscode-error">
             <div className="font-semibold">Request failed</div>
@@ -100,7 +100,7 @@ export function ResultColumn({
             {error?.code && <div className="mt-1 opacity-70">code: {error.code}</div>}
           </div>
         ) : text ? (
-          <pre className="whitespace-pre-wrap break-words font-mono text-xs leading-relaxed">
+          <pre className="whitespace-pre-wrap [overflow-wrap:anywhere] break-words font-mono text-xs leading-relaxed">
             {text}
             {status === 'streaming' && <span className="ml-0.5 inline-block animate-pulse">▋</span>}
           </pre>

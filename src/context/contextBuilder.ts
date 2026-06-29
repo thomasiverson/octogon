@@ -4,16 +4,16 @@ import { ContextPiece } from './assemble';
 export { assembleContext, ContextPiece, BuiltContext, CountModel } from './assemble';
 
 /** Active editor document + non-empty selection, selection prioritized first. */
-export async function collectActivePieces(): Promise<ContextPiece[]> {
-  const editor = vscode.window.activeTextEditor;
-  if (!editor || editor.document.uri.scheme !== 'file') {
+export async function collectActivePieces(editor?: vscode.TextEditor): Promise<ContextPiece[]> {
+  const target = editor ?? vscode.window.activeTextEditor;
+  if (!target || target.document.uri.scheme !== 'file') {
     return [];
   }
-  const doc = editor.document;
+  const doc = target.document;
   const rel = vscode.workspace.asRelativePath(doc.uri);
   const pieces: ContextPiece[] = [];
 
-  const sel = editor.selection;
+  const sel = target.selection;
   if (sel && !sel.isEmpty) {
     pieces.push({
       ref: { path: `${rel} (selection)`, source: 'selection', tokens: 0 },

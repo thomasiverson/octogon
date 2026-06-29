@@ -30,14 +30,14 @@ export function ResultGrid({
 }: ResultGridProps) {
   if (order.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center rounded border border-dashed border-vscode-border p-8 text-center text-sm text-vscode-desc">
+      <div className="flex min-h-[200px] items-center justify-center rounded border border-dashed border-vscode-border p-8 text-center text-sm text-vscode-desc">
         Select models and run a prompt to see responses side by side.
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto pb-2">
+    <div className="flex items-start gap-3 overflow-x-auto pb-2">
       {order.map((id) => {
         const col = columns[id] ?? { modelId: id, status: 'idle' as const, text: '' };
         const info = titleFor(id);

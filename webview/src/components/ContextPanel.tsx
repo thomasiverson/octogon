@@ -33,11 +33,10 @@ export function ContextPanel({
   disabled
 }: ContextPanelProps) {
   return (
-    <div className="flex flex-col gap-2 rounded border border-vscode-border bg-vscode-panel-bg p-2.5">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-vscode-desc">Context</span>
-        <span className="text-[11px] text-vscode-desc">budgeted to the smallest selected model</span>
-      </div>
+    <div className="flex flex-col gap-2">
+      <span className="text-[11px] text-vscode-desc">
+        Budgeted to the smallest selected model's context window.
+      </span>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
         <label className="flex items-center gap-1.5">

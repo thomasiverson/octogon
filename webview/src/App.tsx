@@ -23,6 +23,7 @@ import { ContextDisclosure } from './components/ContextDisclosure';
 import { JudgeBar } from './components/JudgeBar';
 import { VerifyBar } from './components/VerifyBar';
 import { HistoryPanel } from './components/HistoryPanel';
+import { CollapsibleSection } from './components/CollapsibleSection';
 
 interface Notice {
   level: 'info' | 'warn' | 'error';
@@ -67,6 +68,9 @@ export function App() {
   const [history, setHistory] = useState<RunSummary[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [loadedRun, setLoadedRun] = useState<RunRecord | null>(null);
+  const [modelsOpen, setModelsOpen] = useState(true);
+  const [contextOpen, setContextOpen] = useState(false);
+  const [scoringOpen, setScoringOpen] = useState(false);
   const runIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -113,6 +117,7 @@ export function App() {
           setLoadedRun(null);
           verifyPendingRef.current = 0;
           setVerifying(false);
+          setModelsOpen(false);
           dispatch({ type: 'start', modelIds: msg.modelIds });
           setRunning(true);
           break;
@@ -348,9 +353,21 @@ export function App() {
 
   const canRun = prompt.trim().length > 0 && selected.size > 0;
 
+  const selectedModelNames = models.filter((m) => selected.has(m.id)).map((m) => m.name);
+  const modelsSummary =
+    selected.size === 0
+      ? 'none selected'
+      : `${selected.size} selected · ${selectedModelNames.join(', ')}`;
+
+  const contextParts: string[] = [];
+  if (useActiveFile) contextParts.push(activeFile ? (activeFile.split(/[\\/]/).pop() ?? 'active file') : 'active file');
+  if (useRetrieval) contextParts.push(`retrieval ${topK}`);
+  if (attachedFiles.length > 0) contextParts.push(`${attachedFiles.length} attached`);
+  const contextSummary = contextParts.length > 0 ? contextParts.join(' · ') : 'none';
+
   return (
-    <div className="flex h-full flex-col gap-3 p-3">
-      <header className="flex items-baseline gap-2">
+    <div className="flex flex-col gap-2 p-3">
+      <header className="flex shrink-0 items-baseline gap-2">
         <h1 className="text-lg font-semibold tracking-tight">Octogon</h1>
         <span className="text-xs text-vscode-desc">compare cost and accuracy, side by side</span>
         <button
@@ -367,7 +384,7 @@ export function App() {
       </header>
 
       {notice && (
-        <div className={`flex items-start gap-2 rounded border px-3 py-2 text-xs ${noticeClasses[notice.level]}`}>
+        <div className={`flex shrink-0 items-start gap-2 rounded border px-3 py-2 text-xs ${noticeClasses[notice.level]}`}>
           <span className="flex-1">{notice.message}</span>
           <button className="opacity-70 hover:opacity-100" onClick={() => setNotice(null)}>
             ✕
@@ -386,7 +403,7 @@ export function App() {
       )}
 
       {loadedRun && (
-        <div className="flex items-center gap-2 rounded border border-vscode-link/40 bg-vscode-panel-bg px-3 py-2 text-xs">
+        <div className="flex shrink-0 items-center gap-2 rounded border border-vscode-link/40 bg-vscode-panel-bg px-3 py-2 text-xs">
           <span className="flex-1">
             Viewing saved run from {new Date(loadedRun.timestamp).toLocaleString()} (read-only)
           </span>
@@ -409,57 +426,80 @@ export function App() {
         canRun={canRun}
       />
 
-      <ModelPicker
-        models={models}
-        selected={selected}
-        onToggle={toggleModel}
-        onRefresh={() => post({ type: 'requestModels' })}
-        disabled={running}
-      />
+          <CollapsibleSection
+            title="Models"
+            open={modelsOpen}
+            onToggle={() => setModelsOpen((o) => !o)}
+            summary={modelsSummary}
+            right={
+              <button
+                className="rounded px-2 py-0.5 text-xs text-vscode-link hover:bg-vscode-list-hover disabled:opacity-50"
+                onClick={() => post({ type: 'requestModels' })}
+                disabled={running}
+              >
+                Refresh
+              </button>
+            }
+          >
+            <ModelPicker models={models} selected={selected} onToggle={toggleModel} disabled={running} />
+          </CollapsibleSection>
 
-      <ContextPanel
-        activeFile={activeFile}
-        useActiveFile={useActiveFile}
-        onToggleActiveFile={changeUseActiveFile}
-        useRetrieval={useRetrieval}
-        onToggleRetrieval={changeUseRetrieval}
-        topK={topK}
-        onTopKChange={changeTopK}
-        attachedFiles={attachedFiles}
-        onAttach={() => post({ type: 'attachFiles' })}
-        onRemoveAttached={removeAttached}
-        onClearAttached={clearAttached}
-        disabled={running}
-      />
+          <CollapsibleSection
+            title="Context"
+            open={contextOpen}
+            onToggle={() => setContextOpen((o) => !o)}
+            summary={contextSummary}
+          >
+            <ContextPanel
+              activeFile={activeFile}
+              useActiveFile={useActiveFile}
+              onToggleActiveFile={changeUseActiveFile}
+              useRetrieval={useRetrieval}
+              onToggleRetrieval={changeUseRetrieval}
+              topK={topK}
+              onTopKChange={changeTopK}
+              attachedFiles={attachedFiles}
+              onAttach={() => post({ type: 'attachFiles' })}
+              onRemoveAttached={removeAttached}
+              onClearAttached={clearAttached}
+              disabled={running}
+            />
+          </CollapsibleSection>
 
       {preview && (
-        <CostPreview
-          estimates={preview.estimates}
-          totalUsd={preview.totalUsd}
-          totalCredits={preview.totalCredits}
-          expectedOutputTokens={preview.expectedOutputTokens}
-          nameFor={nameFor}
-          onConfirm={confirmRun}
-          onCancel={() => setPreview(null)}
-        />
-      )}
+          <CostPreview
+            estimates={preview.estimates}
+            totalUsd={preview.totalUsd}
+            totalCredits={preview.totalCredits}
+            expectedOutputTokens={preview.expectedOutputTokens}
+            nameFor={nameFor}
+            onConfirm={confirmRun}
+            onCancel={() => setPreview(null)}
+          />
+        )}
 
       {leaderboard && !running && <Leaderboard leaderboard={leaderboard} nameFor={nameFor} />}
 
+        {hasResults && !running && !loadedRun && (
+          <CollapsibleSection
+            title="Score & verify"
+            open={scoringOpen}
+            onToggle={() => setScoringOpen((o) => !o)}
+            summary="rate · LLM judge · sandboxed tests"
+          >
+            <div className="flex flex-col gap-3">
+              <JudgeBar onRunJudge={runJudge} judging={judging} disabled={running} />
+              <VerifyBar
+                command={config?.verifyCommand ?? ''}
+                onVerify={runVerify}
+                verifying={verifying}
+                disabled={running}
+              />
+            </div>
+          </CollapsibleSection>
+        )}
+
       {contextInfo && <ContextDisclosure context={contextInfo} />}
-
-      {hasResults && !running && !loadedRun && (
-        <JudgeBar onRunJudge={runJudge} judging={judging} disabled={running} />
-      )}
-
-      {hasResults && !running && !loadedRun && (
-        <VerifyBar
-          command={config?.verifyCommand ?? ''}
-          onVerify={runVerify}
-          verifying={verifying}
-          disabled={running}
-        />
-      )}
 
       <ResultGrid
         order={order}

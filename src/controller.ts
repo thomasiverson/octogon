@@ -52,12 +52,19 @@ export class OctogonController {
   private currentRun: vscode.CancellationTokenSource | undefined;
   private pricingTable: PricingTable | undefined;
   private lastRun: RunState | undefined;
+  /** Last focused file editor — the webview steals activeTextEditor focus. */
+  private lastActiveEditor: vscode.TextEditor | undefined;
 
   constructor(
     public readonly panel: ComparePanel,
     private readonly context: vscode.ExtensionContext
   ) {
     this.store = new HistoryStore(context.globalStorageUri);
+    this.lastActiveEditor =
+      vscode.window.activeTextEditor?.document.uri.scheme === 'file'
+        ? vscode.window.activeTextEditor
+        : vscode.window.visibleTextEditors.find((e) => e.document.uri.scheme === 'file');
+
     this.panel.onMessage((msg) => void this.handle(msg));
     this.context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration((e) => {
@@ -66,8 +73,36 @@ export class OctogonController {
           void this.sendInit();
         }
       }),
-      vscode.window.onDidChangeActiveTextEditor(() => this.sendActiveFile())
+      vscode.window.onDidChangeActiveTextEditor((editor) => {
+        if (editor && editor.document.uri.scheme === 'file') {
+          this.lastActiveEditor = editor;
+        }
+        this.sendActiveFile();
+      }),
+      vscode.window.onDidChangeVisibleTextEditors(() => this.sendActiveFile())
     );
+  }
+
+  /**
+   * Resolve the file editor to use for context. Prefers the truly active editor,
+   * but falls back to the last focused file editor (since focusing the Octogon
+   * webview clears activeTextEditor) and then any visible file editor.
+   */
+  private getEffectiveEditor(): vscode.TextEditor | undefined {
+    const active = vscode.window.activeTextEditor;
+    if (active && active.document.uri.scheme === 'file') {
+      this.lastActiveEditor = active;
+      return active;
+    }
+    if (this.lastActiveEditor && !this.lastActiveEditor.document.isClosed) {
+      return this.lastActiveEditor;
+    }
+    const visible = vscode.window.visibleTextEditors.find((e) => e.document.uri.scheme === 'file');
+    if (visible) {
+      this.lastActiveEditor = visible;
+      return visible;
+    }
+    return undefined;
   }
 
   private async handle(msg: WebviewToExtension): Promise<void> {
@@ -143,11 +178,8 @@ export class OctogonController {
   }
 
   private sendActiveFile(): void {
-    const editor = vscode.window.activeTextEditor;
-    const path =
-      editor && editor.document.uri.scheme === 'file'
-        ? vscode.workspace.asRelativePath(editor.document.uri)
-        : null;
+    const editor = this.getEffectiveEditor();
+    const path = editor ? vscode.workspace.asRelativePath(editor.document.uri) : null;
     void this.panel.post({ type: 'activeFile', path });
   }
 
@@ -654,7 +686,7 @@ export class OctogonController {
 
     const pieces: ContextPiece[] = [];
     if (options.useActiveFile) {
-      pieces.push(...(await collectActivePieces()));
+      pieces.push(...(await collectActivePieces(this.getEffectiveEditor())));
     }
     if (options.attachedFiles.length > 0) {
       pieces.push(...(await collectAttachedPieces(options.attachedFiles)));

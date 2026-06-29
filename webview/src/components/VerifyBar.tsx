@@ -8,7 +8,7 @@ interface VerifyBarProps {
 export function VerifyBar({ command, onVerify, verifying, disabled }: VerifyBarProps) {
   const configured = command.trim().length > 0;
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded border border-vscode-border bg-vscode-panel-bg p-2.5">
+    <div className="flex flex-wrap items-center gap-2">
       <button
         className="rounded bg-vscode-btn-sec-bg px-3 py-1.5 text-vscode-btn-sec-fg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         onClick={onVerify}
