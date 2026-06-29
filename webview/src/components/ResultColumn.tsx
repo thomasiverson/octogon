@@ -65,12 +65,36 @@ export function ResultColumn({
         <div className="flex flex-wrap gap-1">
           {result && (
             <>
-              <Badge label="latency" value={formatLatency(result.latencyMs)} />
+              <Badge
+                label="latency"
+                value={formatLatency(result.latencyMs)}
+                title={`Total latency — time from sending the request until the full response finished streaming (${formatLatency(
+                  result.latencyMs
+                )}).`}
+              />
               {result.timeToFirstTokenMs !== null && (
-                <Badge label="ttft" value={formatLatency(result.timeToFirstTokenMs)} />
+                <Badge
+                  label="ttft"
+                  value={formatLatency(result.timeToFirstTokenMs)}
+                  title={`Time to first token — how long until the model produced its first token, i.e. how responsive it felt (${formatLatency(
+                    result.timeToFirstTokenMs
+                  )}).`}
+                />
               )}
-              <Badge label="in" value={formatTokens(result.tokens.input)} />
-              <Badge label="out" value={formatTokens(result.tokens.output)} />
+              <Badge
+                label="in"
+                value={formatTokens(result.tokens.input)}
+                title={`Input tokens — the prompt plus any included repo context sent to the model (${formatTokens(
+                  result.tokens.input
+                )} tokens).`}
+              />
+              <Badge
+                label="out"
+                value={formatTokens(result.tokens.output)}
+                title={`Output tokens — tokens the model generated in its response (${formatTokens(
+                  result.tokens.output
+                )} tokens).`}
+              />
             </>
           )}
           {cost && cost.rateAvailable && (
@@ -79,15 +103,29 @@ export function ResultColumn({
                 label="cost"
                 value={formatUsd(cost.usd)}
                 tone="info"
-                title={`Input ${formatUsd(cost.inputUsd)} + Output ${formatUsd(cost.outputUsd)}${
-                  cost.longContext ? ' (long-context tier)' : ''
-                }`}
+                title={`Token cost (USD) — input ${formatUsd(cost.inputUsd)} + output ${formatUsd(
+                  cost.outputUsd
+                )} = ${formatUsd(cost.usd)}${
+                  cost.longContext ? ' · long-context tier applied' : ''
+                }. Estimate based on Copilot usage-based rates.`}
               />
-              <Badge label="credits" value={formatCredits(cost.credits)} tone="info" />
+              <Badge
+                label="credits"
+                value={formatCredits(cost.credits)}
+                tone="info"
+                title={`GitHub AI credits — the same cost billed as credits, where 1 credit = $0.01 (${formatCredits(
+                  cost.credits
+                )} credits ≈ ${formatUsd(cost.usd)}).`}
+              />
             </>
           )}
           {cost && !cost.rateAvailable && (
-            <Badge label="cost" value="rate n/a" tone="warn" title="Model missing from pricing table" />
+            <Badge
+              label="cost"
+              value="rate n/a"
+              tone="warn"
+              title="No cost — this model isn't in the pricing table, so its rate is unavailable."
+            />
           )}
         </div>
       </div>

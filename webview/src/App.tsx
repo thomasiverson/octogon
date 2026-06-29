@@ -478,8 +478,6 @@ export function App() {
           />
         )}
 
-      {leaderboard && !running && <Leaderboard leaderboard={leaderboard} nameFor={nameFor} />}
-
         {hasResults && !running && !loadedRun && (
           <CollapsibleSection
             title="Score & verify"
@@ -500,6 +498,8 @@ export function App() {
         )}
 
       {contextInfo && <ContextDisclosure context={contextInfo} />}
+
+      {leaderboard && !running && <Leaderboard leaderboard={leaderboard} nameFor={nameFor} />}
 
       <ResultGrid
         order={order}
