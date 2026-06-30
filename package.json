@@ -2,7 +2,7 @@
   "name": "octogon",
   "displayName": "Octogon",
   "description": "Compare the cost and accuracy of your GitHub Copilot models, side by side, against any open repository.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "license": "MIT",
   "publisher": "octogon",
   "repository": {
