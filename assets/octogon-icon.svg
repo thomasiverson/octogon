@@ -1,10 +1,8 @@
 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
   <polygon points="21.7,16.02 16.02,21.7 7.98,21.7 2.3,16.02 2.3,7.98 7.98,2.3 16.02,2.3 21.7,7.98" stroke-width="1.7"/>
-  <g stroke-width="1.5">
-    <path d="M6.7 16 L9 8.6 L11.3 16"/>
-    <path d="M7.5 13.2 H10.5"/>
-    <path d="M13.5 8.6 H16.5"/>
-    <path d="M15 8.6 V16"/>
-    <path d="M13.5 16 H16.5"/>
+  <g fill="currentColor" stroke="none">
+    <polygon points="6.8,8.3 11.1,12 6.8,15.7" />
+    <polygon points="17.2,8.3 12.9,12 17.2,15.7" />
   </g>
 </svg>
+

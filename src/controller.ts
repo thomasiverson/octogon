@@ -131,7 +131,7 @@ export class OctogonController {
         this.handlePickWinner(msg.runId, msg.modelId);
         break;
       case 'runJudge':
-        await this.handleJudge(msg.runId, msg.referenceAnswer);
+        await this.handleJudge(msg.runId, msg.referenceAnswer, msg.judgeModelId);
         break;
       case 'loadHistory':
         await this.sendHistory();
@@ -366,7 +366,11 @@ export class OctogonController {
     void this.saveLastRun();
   }
 
-  private async handleJudge(runId: string, referenceAnswer?: string): Promise<void> {
+  private async handleJudge(
+    runId: string,
+    referenceAnswer?: string,
+    judgeModelId?: string
+  ): Promise<void> {
     if (!this.lastRun || this.lastRun.runId !== runId) {
       await this.panel.post({ type: 'judgeError', runId, message: 'No active run to judge.' });
       return;
@@ -378,7 +382,7 @@ export class OctogonController {
       return;
     }
 
-    const judgeModel = await this.pickJudgeModel();
+    const judgeModel = await this.pickJudgeModel(judgeModelId);
     if (!judgeModel) {
       await this.panel.post({ type: 'judgeError', runId, message: 'No judge model is available.' });
       return;
@@ -445,13 +449,21 @@ export class OctogonController {
     }
   }
 
-  private async pickJudgeModel(): Promise<vscode.LanguageModelChat | undefined> {
+  private async pickJudgeModel(preferredId?: string): Promise<vscode.LanguageModelChat | undefined> {
     if (this.registry.list().length === 0) {
       await this.safeEnumerate();
     }
     const list = this.registry.list();
     if (list.length === 0) return undefined;
 
+    // 1. Explicit per-run choice from the judge dropdown.
+    const preferred = (preferredId ?? '').trim();
+    if (preferred) {
+      const match = list.find((m) => m.id === preferred || m.family === preferred);
+      if (match) return match;
+    }
+
+    // 2. The configured default.
     const configured = vscode.workspace
       .getConfiguration('octogon')
       .get<string>('judgeModelId', '')

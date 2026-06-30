@@ -24,6 +24,7 @@ import { ContextDisclosure } from './components/ContextDisclosure';
 import { HistoryPanel } from './components/HistoryPanel';
 import { ModelStatsPanel } from './components/ModelStatsPanel';
 import { CollapsibleSection } from './components/CollapsibleSection';
+import { OctogonMark } from './components/OctogonMark';
 
 interface Notice {
   level: 'info' | 'warn' | 'error';
@@ -74,6 +75,7 @@ export function App() {
   const [contextOpen, setContextOpen] = useState(false);
   const [referenceAnswer, setReferenceAnswer] = useState('');
   const [showReference, setShowReference] = useState(false);
+  const [judgeModelId, setJudgeModelId] = useState('');
   const runIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -306,7 +308,8 @@ export function App() {
     post({
       type: 'runJudge',
       runId: runIdRef.current,
-      referenceAnswer: referenceAnswer.trim() || undefined
+      referenceAnswer: referenceAnswer.trim() || undefined,
+      judgeModelId: judgeModelId || undefined
     });
   };
 
@@ -378,7 +381,8 @@ export function App() {
 
   return (
     <div className="flex flex-col gap-2 p-3">
-      <header className="flex shrink-0 items-baseline gap-2">
+      <header className="flex shrink-0 items-center gap-2">
+        <OctogonMark className="h-5 w-5 shrink-0 text-vscode-link" />
         <h1 className="text-lg font-semibold tracking-tight">Octogon</h1>
         <span className="text-xs text-vscode-desc">compare cost and accuracy, side by side</span>
         <button
@@ -469,33 +473,18 @@ export function App() {
         )}
 
         {hasResults && !loadedRun && (
-          <>
-            <button
-              className="rounded bg-vscode-btn-sec-bg px-3 py-1.5 text-vscode-btn-sec-fg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={running || judging}
-              onClick={() => runJudge(referenceAnswer)}
-            >
-              {judging ? 'Judging…' : 'Run LLM judge'}
-            </button>
-            <button
-              className="rounded bg-vscode-btn-sec-bg px-3 py-1.5 text-vscode-btn-sec-fg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={running || verifying}
-              title={
-                (config?.verifyCommand ?? '').trim()
-                  ? `Sandbox runs: ${config?.verifyCommand}`
-                  : 'Set octogon.verifyCommand (e.g. npm test) to enable verification'
-              }
-              onClick={runVerify}
-            >
-              {verifying ? 'Verifying…' : 'Run verification'}
-            </button>
-            <button
-              className="text-xs text-vscode-link hover:underline"
-              onClick={() => setShowReference((s) => !s)}
-            >
-              {showReference ? 'Hide reference' : 'Add reference answer'}
-            </button>
-          </>
+          <button
+            className="rounded bg-vscode-btn-sec-bg px-3 py-1.5 text-vscode-btn-sec-fg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={running || verifying}
+            title={
+              (config?.verifyCommand ?? '').trim()
+                ? `Sandbox runs: ${config?.verifyCommand}`
+                : 'Set octogon.verifyCommand (e.g. npm test) to enable verification'
+            }
+            onClick={runVerify}
+          >
+            {verifying ? 'Verifying…' : 'Run verification'}
+          </button>
         )}
 
         {running && (
@@ -507,6 +496,41 @@ export function App() {
 
         <span className="ml-auto text-[11px] text-vscode-desc">Ctrl/Cmd+Enter to run</span>
       </div>
+
+      {hasResults && !loadedRun && (
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            className="rounded bg-vscode-btn-sec-bg px-3 py-1.5 text-vscode-btn-sec-fg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={running || judging}
+            onClick={() => runJudge(referenceAnswer)}
+          >
+            {judging ? 'Judging…' : 'Run LLM judge'}
+          </button>
+          <label className="flex items-center gap-1.5 text-xs text-vscode-desc">
+            with
+            <select
+              className="max-w-[180px] rounded border border-vscode-input-border bg-vscode-input-bg px-1.5 py-1 text-xs text-vscode-input-fg outline-none focus:border-vscode-link disabled:opacity-50"
+              value={judgeModelId}
+              onChange={(e) => setJudgeModelId(e.target.value)}
+              disabled={judging}
+              title="Model used to judge the responses"
+            >
+              <option value="">Auto (strongest)</option>
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            className="text-xs text-vscode-link hover:underline"
+            onClick={() => setShowReference((s) => !s)}
+          >
+            {showReference ? 'Hide reference' : 'Add reference answer'}
+          </button>
+        </div>
+      )}
 
       {showReference && hasResults && !loadedRun && (
         <textarea

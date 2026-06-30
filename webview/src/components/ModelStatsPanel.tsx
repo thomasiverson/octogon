@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import type { ModelStat } from '../../../src/shared/types';
 import { formatLatency, formatPercent, formatThroughput, formatUsd } from '../format';
 
@@ -11,7 +12,63 @@ function num(value: number | null, fmt: (n: number) => string): string {
   return value === null ? '—' : fmt(value);
 }
 
+type SortKey =
+  | 'modelName'
+  | 'runs'
+  | 'winRate'
+  | 'avgLatencyMs'
+  | 'avgTokensPerSec'
+  | 'avgCostUsd'
+  | 'avgRating'
+  | 'avgJudge'
+  | 'errorRate';
+
+interface SortState {
+  key: SortKey;
+  dir: 'asc' | 'desc';
+}
+
+const COLUMNS: { key: SortKey; label: string; title?: string }[] = [
+  { key: 'modelName', label: 'Model' },
+  { key: 'runs', label: 'Runs', title: 'Saved responses' },
+  { key: 'winRate', label: 'Win%', title: 'Picked as winner' },
+  { key: 'avgLatencyMs', label: 'Avg latency' },
+  { key: 'avgTokensPerSec', label: 'Avg speed', title: 'Output tokens/sec' },
+  { key: 'avgCostUsd', label: 'Avg cost' },
+  { key: 'avgRating', label: 'Rating', title: 'Manual rating (1–5)' },
+  { key: 'avgJudge', label: 'Judge', title: 'LLM judge (1–10)' },
+  { key: 'errorRate', label: 'Err%', title: 'Errored responses' }
+];
+
 export function ModelStatsPanel({ stats, onRefresh, onClose }: ModelStatsPanelProps) {
+  const [sort, setSort] = useState<SortState>({ key: 'runs', dir: 'desc' });
+
+  function toggleSort(key: SortKey) {
+    setSort((prev) =>
+      prev.key === key
+        ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+        : { key, dir: key === 'modelName' ? 'asc' : 'desc' }
+    );
+  }
+
+  const sorted = useMemo(() => {
+    const arr = [...stats];
+    const { key, dir } = sort;
+    const factor = dir === 'asc' ? 1 : -1;
+    arr.sort((a, b) => {
+      if (key === 'modelName') {
+        return a.modelName.localeCompare(b.modelName) * factor;
+      }
+      const av = a[key] as number | null;
+      const bv = b[key] as number | null;
+      if (av === null && bv === null) return 0;
+      if (av === null) return 1; // nulls always last
+      if (bv === null) return -1;
+      return (av - bv) * factor;
+    });
+    return arr;
+  }, [stats, sort]);
+
   return (
     <div className="flex flex-col gap-2 rounded border border-vscode-border bg-vscode-panel-bg p-2.5">
       <div className="flex items-center gap-2">
@@ -36,19 +93,30 @@ export function ModelStatsPanel({ stats, onRefresh, onClose }: ModelStatsPanelPr
           <table className="w-full text-left text-xs tabular-nums">
             <thead className="text-vscode-desc">
               <tr className="border-b border-vscode-border">
-                <th className="py-1 pr-3 font-medium">Model</th>
-                <th className="py-1 pr-3 font-medium" title="Saved responses">Runs</th>
-                <th className="py-1 pr-3 font-medium" title="Picked as winner">Win%</th>
-                <th className="py-1 pr-3 font-medium">Avg latency</th>
-                <th className="py-1 pr-3 font-medium" title="Output tokens/sec">Avg speed</th>
-                <th className="py-1 pr-3 font-medium">Avg cost</th>
-                <th className="py-1 pr-3 font-medium" title="Manual rating (1–5)">Rating</th>
-                <th className="py-1 pr-3 font-medium" title="LLM judge (1–10)">Judge</th>
-                <th className="py-1 font-medium" title="Errored responses">Err%</th>
+                {COLUMNS.map((col, i) => {
+                  const active = sort.key === col.key;
+                  const last = i === COLUMNS.length - 1;
+                  return (
+                    <th
+                      key={col.key}
+                      title={col.title}
+                      onClick={() => toggleSort(col.key)}
+                      aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                      className={`${last ? 'py-1' : 'py-1 pr-3'} cursor-pointer select-none font-medium hover:text-vscode-fg ${active ? 'text-vscode-fg' : ''}`}
+                    >
+                      <span className="inline-flex items-center gap-0.5">
+                        {col.label}
+                        <span className="text-[9px] leading-none opacity-80">
+                          {active ? (sort.dir === 'asc' ? '▲' : '▼') : ''}
+                        </span>
+                      </span>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
-              {stats.map((s) => (
+              {sorted.map((s) => (
                 <tr key={s.modelId} className="border-b border-vscode-border/50">
                   <td className="py-1 pr-3 font-medium" title={s.modelId}>
                     {s.modelName}

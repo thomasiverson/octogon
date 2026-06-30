@@ -232,7 +232,7 @@ export type WebviewToExtension =
   | { type: 'clearAttached' }
   | { type: 'rate'; runId: string; modelId: string; rating: number | null }
   | { type: 'pickWinner'; runId: string; modelId: string | null }
-  | { type: 'runJudge'; runId: string; referenceAnswer?: string }
+  | { type: 'runJudge'; runId: string; referenceAnswer?: string; judgeModelId?: string }
   | { type: 'loadHistory' }
   | { type: 'reloadRun'; id: string }
   | { type: 'exportRun'; id: string; format: 'json' | 'markdown' }

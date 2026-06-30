@@ -1,6 +1,7 @@
 import type { ColumnState } from '../state';
 import { Badge } from './Badge';
 import { StarRating } from './StarRating';
+import { Markdown } from './Markdown';
 import { tokensPerSecond } from '../../../src/shared/metrics';
 import { formatCredits, formatLatency, formatThroughput, formatTokens, formatUsd } from '../format';
 
@@ -149,10 +150,14 @@ export function ResultColumn({
             {error?.code && <div className="mt-1 opacity-70">code: {error.code}</div>}
           </div>
         ) : text ? (
-          <pre className="whitespace-pre-wrap [overflow-wrap:anywhere] break-words font-mono text-xs leading-relaxed">
-            {text}
-            {status === 'streaming' && <span className="ml-0.5 inline-block animate-pulse">▋</span>}
-          </pre>
+          status === 'done' ? (
+            <Markdown content={text} />
+          ) : (
+            <pre className="whitespace-pre-wrap [overflow-wrap:anywhere] break-words font-mono text-xs leading-relaxed">
+              {text}
+              {status === 'streaming' && <span className="ml-0.5 inline-block animate-pulse">▋</span>}
+            </pre>
+          )
         ) : status === 'streaming' || status === 'idle' ? (
           <div className="text-xs text-vscode-desc">Waiting for response…</div>
         ) : (
