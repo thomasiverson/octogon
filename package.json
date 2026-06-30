@@ -26,7 +26,8 @@
   ],
   "main": "./dist/extension.js",
   "activationEvents": [
-    "onCommand:octogon.open"
+    "onCommand:octogon.open",
+    "onView:octogon.launch"
   ],
   "contributes": {
     "commands": [
@@ -39,6 +40,30 @@
         "command": "octogon.clearHistory",
         "title": "Octogon: Clear Run History",
         "category": "Octogon"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "octogon",
+          "title": "Octogon",
+          "icon": "assets/octogon-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "octogon": [
+        {
+          "id": "octogon.launch",
+          "name": "Octogon",
+          "type": "tree"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "octogon.launch",
+        "contents": "Compare the cost and accuracy of your GitHub Copilot models, side by side.\n\n[$(rocket) Open Octogon](command:octogon.open)\n\nThe comparison opens in a full-width editor panel."
       }
     ],
     "configuration": {

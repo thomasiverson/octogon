@@ -55,6 +55,7 @@ Phased build plan for **Octogon**, a VS Code extension that compares the **cost*
 | 5 | [phase-5-persistence.md](phase-5-persistence.md) | Save / browse / reload / export run history | No |
 | 6 | [phase-6-verification.md](phase-6-verification.md) | Automated build/test verification for code tasks | Stretch |
 | 7 | [phase-7-polish.md](phase-7-polish.md) | Docs, tests, demo script, packaging | No |
+| 8 | [phase-8-agent-bakeoff.md](phase-8-agent-bakeoff.md) | Optional Agent mode: per-model autonomous coding loops in sandboxes, compared by diff/tests/cost | Stretch |
 
 ## Dependency graph
 
@@ -69,4 +70,6 @@ flowchart TD
   P3 --> P6[Phase 6 - Verification stretch]
   P5 --> P7[Phase 7 - Polish]
   P6 -.-> P7
+  P3 --> P8[Phase 8 - Agent bake-off stretch]
+  P6 --> P8
 ```

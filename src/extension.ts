@@ -25,7 +25,13 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   });
 
-  context.subscriptions.push(open, clearHistory);
+  // Empty tree so the Activity Bar view shows its welcome launcher (viewsWelcome).
+  const launchView = vscode.window.registerTreeDataProvider('octogon.launch', {
+    getTreeItem: () => new vscode.TreeItem(''),
+    getChildren: () => []
+  });
+
+  context.subscriptions.push(open, clearHistory, launchView);
 }
 
 export function deactivate(): void {

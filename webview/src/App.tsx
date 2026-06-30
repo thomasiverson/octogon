@@ -21,8 +21,6 @@ import { CostPreview } from './components/CostPreview';
 import { Leaderboard } from './components/Leaderboard';
 import { ContextPanel } from './components/ContextPanel';
 import { ContextDisclosure } from './components/ContextDisclosure';
-import { JudgeBar } from './components/JudgeBar';
-import { VerifyBar } from './components/VerifyBar';
 import { HistoryPanel } from './components/HistoryPanel';
 import { ModelStatsPanel } from './components/ModelStatsPanel';
 import { CollapsibleSection } from './components/CollapsibleSection';
@@ -74,7 +72,8 @@ export function App() {
   const [modelStats, setModelStats] = useState<ModelStat[]>([]);
   const [modelsOpen, setModelsOpen] = useState(true);
   const [contextOpen, setContextOpen] = useState(false);
-  const [scoringOpen, setScoringOpen] = useState(false);
+  const [referenceAnswer, setReferenceAnswer] = useState('');
+  const [showReference, setShowReference] = useState(false);
   const runIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -446,11 +445,78 @@ export function App() {
         prompt={prompt}
         onPromptChange={changePrompt}
         onRun={requestPreview}
-        onCancel={cancel}
         running={running}
         previewing={previewing}
         canRun={canRun}
       />
+
+      <div className="flex flex-wrap items-center gap-2">
+        {running ? (
+          <button
+            className="rounded bg-vscode-btn-sec-bg px-3 py-1.5 text-vscode-btn-sec-fg hover:opacity-90"
+            onClick={cancel}
+          >
+            Cancel
+          </button>
+        ) : (
+          <button
+            className="rounded bg-vscode-btn-bg px-3 py-1.5 text-vscode-btn-fg hover:bg-vscode-btn-hover disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!canRun || previewing}
+            onClick={requestPreview}
+          >
+            {previewing ? 'Estimating cost…' : 'Run comparison'}
+          </button>
+        )}
+
+        {hasResults && !loadedRun && (
+          <>
+            <button
+              className="rounded bg-vscode-btn-sec-bg px-3 py-1.5 text-vscode-btn-sec-fg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={running || judging}
+              onClick={() => runJudge(referenceAnswer)}
+            >
+              {judging ? 'Judging…' : 'Run LLM judge'}
+            </button>
+            <button
+              className="rounded bg-vscode-btn-sec-bg px-3 py-1.5 text-vscode-btn-sec-fg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={running || verifying}
+              title={
+                (config?.verifyCommand ?? '').trim()
+                  ? `Sandbox runs: ${config?.verifyCommand}`
+                  : 'Set octogon.verifyCommand (e.g. npm test) to enable verification'
+              }
+              onClick={runVerify}
+            >
+              {verifying ? 'Verifying…' : 'Run verification'}
+            </button>
+            <button
+              className="text-xs text-vscode-link hover:underline"
+              onClick={() => setShowReference((s) => !s)}
+            >
+              {showReference ? 'Hide reference' : 'Add reference answer'}
+            </button>
+          </>
+        )}
+
+        {running && (
+          <span className="flex items-center gap-1 text-xs text-vscode-desc">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-vscode-link" />
+            Running…
+          </span>
+        )}
+
+        <span className="ml-auto text-[11px] text-vscode-desc">Ctrl/Cmd+Enter to run</span>
+      </div>
+
+      {showReference && hasResults && !loadedRun && (
+        <textarea
+          className="min-h-[60px] w-full resize-y rounded border border-vscode-input-border bg-vscode-input-bg p-2 text-xs text-vscode-input-fg outline-none focus:border-vscode-link"
+          placeholder="Optional reference answer — when provided, the LLM judge scores responses against it."
+          value={referenceAnswer}
+          onChange={(e) => setReferenceAnswer(e.target.value)}
+          disabled={running || judging}
+        />
+      )}
 
           <CollapsibleSection
             title="Models"
@@ -502,25 +568,6 @@ export function App() {
             onConfirm={confirmRun}
             onCancel={() => setPreview(null)}
           />
-        )}
-
-        {hasResults && !running && !loadedRun && (
-          <CollapsibleSection
-            title="Score & verify"
-            open={scoringOpen}
-            onToggle={() => setScoringOpen((o) => !o)}
-            summary="rate · LLM judge · sandboxed tests"
-          >
-            <div className="flex flex-col gap-3">
-              <JudgeBar onRunJudge={runJudge} judging={judging} disabled={running} />
-              <VerifyBar
-                command={config?.verifyCommand ?? ''}
-                onVerify={runVerify}
-                verifying={verifying}
-                disabled={running}
-              />
-            </div>
-          </CollapsibleSection>
         )}
 
       {contextInfo && <ContextDisclosure context={contextInfo} />}

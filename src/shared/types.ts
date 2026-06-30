@@ -17,6 +17,8 @@ export interface ModelInfo {
   vendor: string;
   /** Maximum input tokens (context window) reported by the model. */
   maxInputTokens: number;
+  /** Provider/maker (e.g. "OpenAI", "Anthropic"), resolved from the pricing table. */
+  provider?: string;
   /** Input rate per 1M tokens (USD), resolved from the pricing table. */
   inputRate?: number;
   /** Output rate per 1M tokens (USD), resolved from the pricing table. */

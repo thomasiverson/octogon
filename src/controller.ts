@@ -220,9 +220,18 @@ export class OctogonController {
     const table = await this.getPricing();
     if (!table) return models;
     return models.map((m) => {
+      // "Auto" routes to a model at request time, so a fixed picker price would mislead.
+      if (m.name.trim().toLowerCase() === 'auto') {
+        return m;
+      }
       const resolved = resolveRate(table, { id: m.id, family: m.family, name: m.name });
       return resolved
-        ? { ...m, inputRate: resolved.rate.input, outputRate: resolved.rate.output }
+        ? {
+            ...m,
+            provider: resolved.rate.provider,
+            inputRate: resolved.rate.input,
+            outputRate: resolved.rate.output
+          }
         : m;
     });
   }
