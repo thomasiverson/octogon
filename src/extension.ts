@@ -26,13 +26,25 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   });
 
+  const openSettings = vscode.commands.registerCommand('octogon.openSettings', () =>
+    vscode.commands.executeCommand('workbench.action.openSettings', '@ext:octogon.octogon')
+  );
+
+  const refreshPricing = vscode.commands.registerCommand('octogon.refreshPricing', async () => {
+    if (controller) {
+      await controller.refreshPricing();
+    } else {
+      await vscode.window.showInformationMessage('Open Octogon first to refresh pricing.');
+    }
+  });
+
   // Empty tree so the Activity Bar view shows its welcome launcher (viewsWelcome).
   const launchView = vscode.window.registerTreeDataProvider('octogon.launch', {
     getTreeItem: () => new vscode.TreeItem(''),
     getChildren: () => []
   });
 
-  context.subscriptions.push(open, clearHistory, launchView);
+  context.subscriptions.push(open, clearHistory, openSettings, refreshPricing, launchView);
 }
 
 export function deactivate(): void {

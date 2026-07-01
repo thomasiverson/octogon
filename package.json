@@ -2,7 +2,7 @@
   "name": "octogon",
   "displayName": "Octogon",
   "description": "Compare the cost and accuracy of your GitHub Copilot models, side by side, against any open repository.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "license": "MIT",
   "publisher": "octogon",
   "repository": {
@@ -44,6 +44,16 @@
         "command": "octogon.clearHistory",
         "title": "Octogon: Clear Run History",
         "category": "Octogon"
+      },
+      {
+        "command": "octogon.openSettings",
+        "title": "Octogon: Settings",
+        "category": "Octogon"
+      },
+      {
+        "command": "octogon.refreshPricing",
+        "title": "Octogon: Refresh Pricing",
+        "category": "Octogon"
       }
     ],
     "viewsContainers": {
@@ -77,6 +87,11 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Absolute path to an override token-pricing JSON file. When empty, the bundled pricing table is used. The override must match the bundled schema (`aiCreditUsd`, `unit`, `models`)."
+        },
+        "octogon.pricingUrl": {
+          "type": "string",
+          "default": "https://raw.githubusercontent.com/thomasiverson/octogon/main/pricing/model-pricing.json",
+          "markdownDescription": "URL of a pricing JSON used by the **Octogon: Refresh Pricing** command. The fetch happens **only** when you run that command (or click *refresh* in the panel) — Octogon makes no other network calls. Defaults to this repository's published `pricing/model-pricing.json`."
         },
         "octogon.expectedOutputTokens": {
           "type": "number",

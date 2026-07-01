@@ -130,7 +130,7 @@ Octogon exists to help you *spend less*, so it's honest about spending:
 - Octogon computes cost directly from that model: `inputTokens × inputRate + outputTokens × outputRate`, shown in **USD and credits**.
 - **Comparing N models = N runs.** You pay for the tokens each model consumes; the LLM judge and Agent Mode add more. The pre-run preview and optional budget guard are there so it's always your call.
 
-The rate table is **bundled, dated, and overridable** via `octogon.pricingTablePath` — see [src/cost/data/model-pricing.json](src/cost/data/model-pricing.json).
+The rate table is **bundled, dated, and overridable** via `octogon.pricingTablePath` — see [pricing/model-pricing.json](pricing/model-pricing.json). You can also pull an updated table with **Octogon: Refresh Pricing** (opt-in, fetches from `octogon.pricingUrl`; no other network calls).
 
 > Rates change often. The JSON carries a `lastUpdated` date and a `source` URL — re-verify against GitHub's official **Models and pricing** page.
 
@@ -196,6 +196,7 @@ Open that folder, run the command, attach a couple of files (or lean on retrieva
 | Setting | Description | Default |
 | --- | --- | --- |
 | `octogon.pricingTablePath` | Override path for the token pricing JSON | bundled |
+| `octogon.pricingUrl` | Source URL for **Octogon: Refresh Pricing** (opt-in fetch) | repo raw JSON |
 | `octogon.expectedOutputTokens` | Assumed output tokens for the pre-run estimate | `800` |
 | `octogon.retrieval.topK` | Snippets pulled by lightweight retrieval | `5` |
 | `octogon.judgeModelId` | Default LLM-as-judge model | unset |
@@ -218,7 +219,7 @@ Built on the stack this repo already speaks — TypeScript everywhere, React for
 | Webview UI | React 18 + Vite + Tailwind CSS + TypeScript |
 | Bundling | esbuild (extension), Vite (webview) |
 | Storage | JSON in extension global storage |
-| Testing | Vitest (unit) + `@vscode/test-electron` (integration); the LM is **mocked** in tests |
+| Testing | Vitest — unit suites for the pure logic plus an activation smoke test; the language model and VS Code host are **mocked** in tests |
 
 <details>
 <summary>Project structure</summary>
@@ -233,11 +234,12 @@ octogon/
 │  ├─ context/                  # active file + selection + attached + retrieval
 │  ├─ runner/orchestrator.ts    # parallel sendRequest + streaming + metrics
 │  ├─ agent/                    # experimental agent loop, tools, sandbox
-│  ├─ cost/                     # token cost math (USD + AI credits) + pricing data
+│  ├─ cost/                     # token cost math (USD + AI credits)
 │  ├─ scoring/                  # manual, LLM-as-judge, verify
 │  ├─ store/                    # local history + exporter + model stats
 │  ├─ webview/panel.ts          # ComparePanel + typed message protocol
 │  └─ shared/types.ts           # shared result/message types
+├─ pricing/                     # published token-pricing table (refresh source)
 ├─ webview/                     # React + Vite app
 ├─ media/                       # built webview assets
 └─ test/                        # Vitest unit suites (LM mocked)

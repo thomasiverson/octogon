@@ -325,4 +325,6 @@ export type WebviewToExtension =
   | { type: 'previewAgent'; runId: string; modelId: string }
   | { type: 'discardAgent'; runId: string }
   | { type: 'enableAgent' }
+  | { type: 'openSettings' }
+  | { type: 'refreshPricing' }
   | { type: 'log'; message: string };

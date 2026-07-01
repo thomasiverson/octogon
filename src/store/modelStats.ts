@@ -107,3 +107,28 @@ export function computeModelStats(records: RunRecord[]): ModelStat[] {
   stats.sort((x, y) => y.runs - x.runs || x.modelName.localeCompare(y.modelName));
   return stats;
 }
+
+/**
+ * Average observed output tokens per model across saved runs (successful,
+ * non-empty responses only). Used to sharpen the pre-run cost estimate instead
+ * of a flat default. Models with no history are simply absent from the map.
+ */
+export function averageOutputTokens(records: RunRecord[]): Map<string, number> {
+  const sum = new Map<string, number>();
+  const count = new Map<string, number>();
+  for (const record of records) {
+    for (const r of record.results) {
+      if (r.error) continue;
+      const out = r.tokens?.output ?? 0;
+      if (out <= 0) continue;
+      sum.set(r.modelId, (sum.get(r.modelId) ?? 0) + out);
+      count.set(r.modelId, (count.get(r.modelId) ?? 0) + 1);
+    }
+  }
+  const avg = new Map<string, number>();
+  for (const [modelId, total] of sum) {
+    const n = count.get(modelId) ?? 0;
+    if (n > 0) avg.set(modelId, Math.round(total / n));
+  }
+  return avg;
+}

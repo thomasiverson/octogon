@@ -36,8 +36,9 @@ export function CostPreview({
       </div>
 
       <p className="mt-1 text-[11px] text-vscode-desc">
-        Measured input tokens + {formatTokens(expectedOutputTokens)} assumed output tokens per
-        model. Running consumes real tokens/credits; the exact cost is shown after the run.
+        Measured input tokens + estimated output per model (from your run history when available,
+        otherwise ~{formatTokens(expectedOutputTokens)}). Running consumes real tokens/credits; the
+        exact cost is shown after the run.
       </p>
 
       <div className="mt-2 flex flex-col gap-1">
@@ -45,6 +46,7 @@ export function CostPreview({
           <div key={e.modelId} className="flex items-center gap-2 text-xs">
             <span className="flex-1 truncate">{nameFor(e.modelId)}</span>
             <span className="tabular-nums text-vscode-desc">{formatTokens(e.inputTokens)} in</span>
+            <span className="tabular-nums text-vscode-desc">~{formatTokens(e.expectedOutputTokens)} out</span>
             {e.rateAvailable ? (
               <span className="tabular-nums">
                 {formatUsd(e.usd)} · {formatCredits(e.credits)} cr

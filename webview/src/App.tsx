@@ -47,6 +47,14 @@ const noticeClasses: Record<Notice['level'], string> = {
   error: 'border-red-500/40 bg-red-500/10'
 };
 
+/** Whole days between an ISO-ish date string and now; null if unparseable. */
+function daysSince(dateStr: string): number | null {
+  const t = Date.parse(dateStr);
+  if (Number.isNaN(t)) return null;
+  const ms = Date.now() - t;
+  return ms < 0 ? 0 : Math.floor(ms / 86_400_000);
+}
+
 export function App() {
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [config, setConfig] = useState<OctogonConfig | null>(null);
@@ -476,6 +484,9 @@ export function App() {
   if (attachedFiles.length > 0) contextParts.push(`${attachedFiles.length} attached`);
   const contextSummary = contextParts.length > 0 ? contextParts.join(' · ') : 'none';
 
+  const pricingDays = config ? daysSince(config.pricingLastUpdated) : null;
+  const pricingStale = pricingDays !== null && pricingDays > 30;
+
   return (
     <div className="flex flex-col gap-2 p-3">
       <header className="flex shrink-0 items-center gap-2">
@@ -494,12 +505,34 @@ export function App() {
         >
           {showHistory ? 'Hide history' : 'History'}
         </button>
-        {config && (
-          <span className="text-[11px] text-vscode-desc">
-            pricing as of {config.pricingLastUpdated} · estimates only
-          </span>
-        )}
+        <button
+          className="rounded px-2 py-0.5 text-xs text-vscode-link hover:bg-vscode-list-hover"
+          onClick={() => post({ type: 'openSettings' })}
+          title="Open Octogon settings"
+        >
+          ⚙ Settings
+        </button>
       </header>
+
+      {config && (
+        <div className="flex shrink-0 flex-wrap items-center gap-1.5 text-[11px] text-vscode-desc">
+          <span className={pricingStale ? 'text-yellow-500' : undefined}>
+            {pricingDays === null
+              ? `Pricing as of ${config.pricingLastUpdated}`
+              : pricingDays === 0
+                ? 'Pricing updated today'
+                : `Pricing updated ${pricingDays} day${pricingDays === 1 ? '' : 's'} ago`}
+            {pricingStale ? ' · may be stale' : ''} · estimates only
+          </span>
+          <button
+            className="text-vscode-link hover:underline"
+            onClick={() => post({ type: 'refreshPricing' })}
+            title="Fetch the latest pricing from octogon.pricingUrl"
+          >
+            refresh
+          </button>
+        </div>
+      )}
 
       {notice && (
         <div className={`flex shrink-0 items-start gap-2 rounded border px-3 py-2 text-xs ${noticeClasses[notice.level]}`}>

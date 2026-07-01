@@ -25,12 +25,12 @@ You can expect an initial response within a few days. Once a fix is available it
 
 A few design points worth knowing when assessing risk:
 
-- **No external API keys or third-party network calls on the core path.** Model access goes through the VS Code Language Model API (`vscode.lm`) using your existing Copilot subscription.
+- **No external API keys, and no background network calls.** Model access goes through the VS Code Language Model API (`vscode.lm`) using your existing Copilot subscription. The *only* outbound request Octogon can make is the **opt-in, user-initiated pricing refresh** (below) — nothing is fetched automatically.
 - **No telemetry.** Run history, cost figures, and model stats are stored locally in extension storage; Octogon does not send them anywhere.
 - **Command execution is opt-in and gated.** The optional *verification* command and *Agent Mode* can run shell commands. These are:
   - off by default (`octogon.verifyCommand` is unset; `octogon.agent.enabled` is `false`),
   - confined to an isolated sandbox copy of the workspace with path checks, and
   - shown to you and gated behind an explicit consent prompt before anything runs.
-- **Pricing data is local.** The bundled pricing table is a static JSON file; the override path is user-controlled.
+- **Pricing data is local by default.** The bundled pricing table is a static JSON file; the override path is user-controlled. **Octogon: Refresh Pricing** fetches an updated table from `octogon.pricingUrl`, but only when you run that command (or click *refresh* in the panel) — it is never fetched in the background.
 
 If you find a way to bypass the consent gate, escape the sandbox, or break path confinement, please report it through the process above.

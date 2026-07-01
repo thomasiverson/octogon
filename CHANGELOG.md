@@ -5,6 +5,27 @@ All notable changes to **Octogon** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] — 2026-07-01
+
+### Added
+- **Settings shortcut** — an **Octogon: Settings** command and a ⚙ gear in the panel header that
+  open VS Code Settings filtered to Octogon.
+- **Pricing freshness** — the header now shows how old the pricing snapshot is (amber past 30 days)
+  with a one-click **refresh**. A new **Octogon: Refresh Pricing** command + `octogon.pricingUrl`
+  fetch an updated table from a URL you control. The fetch is **opt-in and user-initiated** — the
+  only outbound request Octogon makes. Load precedence is override path → refreshed cache → bundled.
+- **Sharper pre-run estimate** — the cost preview now estimates each model's output using its
+  historical average output tokens (from your run history), falling back to
+  `octogon.expectedOutputTokens`; the per-model expected output is shown in the preview.
+- **Activation smoke test** — a Vitest test that mocks the host and verifies the extension registers
+  its commands and opens the panel.
+
+### Changed
+- Moved the bundled pricing table to **`pricing/model-pricing.json`** — an obvious, updatable
+  location that doubles as the default refresh source.
+- Docs: corrected the README testing description (there is no `@vscode/test-electron` suite) and
+  documented pricing refresh; SECURITY.md now notes the single opt-in pricing fetch.
+
 ## [0.3.0] — 2026-07-01
 
 ### Added

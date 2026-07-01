@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeModelStats } from '../src/store/modelStats';
+import { computeModelStats, averageOutputTokens } from '../src/store/modelStats';
 import type { ModelResult, RunRecord } from '../src/shared/types';
 
 function result(modelId: string, over: Partial<ModelResult> = {}): ModelResult {
@@ -59,5 +59,21 @@ describe('computeModelStats', () => {
   it('uses the model display name and sorts by run count', () => {
     expect(a.modelName).toBe('Model A');
     expect(stats[0].runs).toBeGreaterThanOrEqual(stats[stats.length - 1].runs);
+  });
+});
+
+describe('averageOutputTokens', () => {
+  it('averages output tokens per model, ignoring errored responses', () => {
+    const records: RunRecord[] = [
+      record({ id: '1', results: [result('a', { tokens: { input: 10, output: 100 } }), result('b', { error: { message: 'x' } })] }),
+      record({ id: '2', results: [result('a', { tokens: { input: 10, output: 300 } })] })
+    ];
+    const avg = averageOutputTokens(records);
+    expect(avg.get('a')).toBe(200); // (100 + 300) / 2
+    expect(avg.has('b')).toBe(false); // only errored -> no data
+  });
+
+  it('is empty when there is no history', () => {
+    expect(averageOutputTokens([]).size).toBe(0);
   });
 });

@@ -79,7 +79,7 @@ describe('resolveRate normalization', () => {
 
 describe('bundled pricing table', () => {
   const table = JSON.parse(
-    readFileSync(resolve(__dirname, '../src/cost/data/model-pricing.json'), 'utf8')
+    readFileSync(resolve(__dirname, '../pricing/model-pricing.json'), 'utf8')
   ) as PricingTable;
 
   it('prices a known model from the snapshot', () => {

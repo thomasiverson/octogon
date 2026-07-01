@@ -43,7 +43,7 @@ import { runAgent, AgentCaps } from './agent/loop';
 import { rankAgents } from './agent/agentRanking';
 import { HistoryStore } from './store/historyStore';
 import { buildMarkdownSummary } from './store/exporter';
-import { computeModelStats } from './store/modelStats';
+import { computeModelStats, averageOutputTokens } from './store/modelStats';
 
 interface RunState {
   runId: string;
@@ -189,6 +189,12 @@ export class OctogonController {
         break;
       case 'cancel':
         this.cancelCurrentRun();
+        break;
+      case 'openSettings':
+        await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:octogon.octogon');
+        break;
+      case 'refreshPricing':
+        await this.refreshPricing();
         break;
       case 'log':
         console.log('[octogon:webview]', msg.message);
@@ -948,13 +954,18 @@ export class OctogonController {
     await this.panel.post({ type: 'history', runs });
   }
 
-  private async handleLoadModelStats(): Promise<void> {
+  private async loadHistoryRecords(): Promise<RunRecord[]> {
     const summaries = await this.store.list();
     const records: RunRecord[] = [];
     for (const summary of summaries) {
       const record = await this.store.load(summary.id);
       if (record) records.push(record);
     }
+    return records;
+  }
+
+  private async handleLoadModelStats(): Promise<void> {
+    const records = await this.loadHistoryRecords();
     await this.panel.post({ type: 'modelStats', stats: computeModelStats(records) });
   }
 
@@ -1092,9 +1103,13 @@ export class OctogonController {
 
     const models = await this.registry.resolve(modelIds);
     const table = await this.getPricing();
-    const expectedOutputTokens = vscode.workspace
+    const defaultOutputTokens = vscode.workspace
       .getConfiguration('octogon')
       .get<number>('expectedOutputTokens', 800);
+
+    // Sharpen the output estimate per model using its historical average output
+    // (falling back to the configured default for models with no run history).
+    const historicalOutput = averageOutputTokens(await this.loadHistoryRecords());
 
     // Same context the run will use, so the preview reflects context tokens too.
     const context = await this.buildContext(prompt, models, options);
@@ -1110,6 +1125,7 @@ export class OctogonController {
       } catch (err) {
         console.warn('[octogon] countTokens failed during preview:', err);
       }
+      const expectedOutputTokens = historicalOutput.get(model.id) ?? defaultOutputTokens;
       const cost = table
         ? tokenCost(
             table,
@@ -1137,7 +1153,7 @@ export class OctogonController {
       estimates,
       totalUsd,
       totalCredits,
-      expectedOutputTokens
+      expectedOutputTokens: defaultOutputTokens
     });
   }
 
@@ -1211,7 +1227,7 @@ export class OctogonController {
       return this.pricingTable;
     }
     try {
-      this.pricingTable = await loadPricingTable(this.context.extensionUri);
+      this.pricingTable = await loadPricingTable(this.context.extensionUri, this.pricingCacheUri());
       return this.pricingTable;
     } catch (err) {
       console.error('[octogon] failed to load pricing table:', err);
@@ -1221,6 +1237,53 @@ export class OctogonController {
         message: 'Pricing table could not be loaded — costs will show as unavailable.'
       });
       return undefined;
+    }
+  }
+
+  private pricingCacheUri(): vscode.Uri {
+    return vscode.Uri.joinPath(this.context.globalStorageUri, 'pricing-cache.json');
+  }
+
+  /**
+   * Fetch the pricing table from `octogon.pricingUrl` and cache it locally. This
+   * is the ONLY outbound network request Octogon makes, and it runs only when the
+   * user explicitly triggers it (the command or the panel's "refresh").
+   */
+  async refreshPricing(): Promise<void> {
+    const url = (
+      vscode.workspace.getConfiguration('octogon').get<string>('pricingUrl') ?? ''
+    ).trim();
+    if (!url) {
+      await this.panel.post({
+        type: 'notice',
+        level: 'warn',
+        message: 'Set "octogon.pricingUrl" to a pricing JSON URL, then refresh again.'
+      });
+      return;
+    }
+    await this.panel.post({ type: 'notice', level: 'info', message: 'Refreshing pricing…' });
+    try {
+      const res = await fetch(url, { headers: { accept: 'application/json' } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      const parsed = JSON.parse(text) as PricingTable;
+      if (!parsed.models || typeof parsed.aiCreditUsd !== 'number') {
+        throw new Error('missing "models" or "aiCreditUsd"');
+      }
+      await vscode.workspace.fs.writeFile(this.pricingCacheUri(), Buffer.from(text, 'utf8'));
+      this.pricingTable = undefined;
+      await this.sendInit();
+      await this.panel.post({
+        type: 'notice',
+        level: 'info',
+        message: `Pricing updated (as of ${parsed.lastUpdated ?? 'unknown'}).`
+      });
+    } catch (err) {
+      await this.panel.post({
+        type: 'notice',
+        level: 'error',
+        message: `Pricing refresh failed: ${err instanceof Error ? err.message : String(err)}`
+      });
     }
   }
 
