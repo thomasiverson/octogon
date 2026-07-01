@@ -1,4 +1,10 @@
-import type { JudgeScore, ModelResult, VerifyResult } from '../../src/shared/types';
+import type {
+  AgentResult,
+  AgentStep,
+  JudgeScore,
+  ModelResult,
+  VerifyResult
+} from '../../src/shared/types';
 
 export type ColumnStatus = 'idle' | 'streaming' | 'done' | 'error';
 
@@ -8,6 +14,10 @@ export interface ColumnState {
   text: string;
   result?: ModelResult;
   error?: { message: string; code?: string };
+  /** Agent-mode tool-call transcript (agent runs only). */
+  steps?: AgentStep[];
+  /** Agent-mode outcome (agent runs only). */
+  agentResult?: AgentResult;
 }
 
 export type Columns = Record<string, ColumnState>;
@@ -22,6 +32,11 @@ export type RunAction =
   | { type: 'rate'; modelId: string; rating: number | null }
   | { type: 'judge'; scores: JudgeScore[] }
   | { type: 'verify'; modelId: string; result: VerifyResult }
+  | { type: 'agentStart'; modelId: string }
+  | { type: 'agentFragment'; modelId: string; text: string }
+  | { type: 'agentStep'; modelId: string; step: AgentStep }
+  | { type: 'agentDone'; modelId: string; result: AgentResult }
+  | { type: 'agentError'; modelId: string; message: string; code?: string }
   | { type: 'load'; columns: Columns }
   | { type: 'reset' };
 
@@ -97,6 +112,48 @@ export function runReducer(state: Columns, action: RunAction): Columns {
       };
     }
     case 'modelError': {
+      const col = ensure(state, action.modelId, 'streaming');
+      return {
+        ...state,
+        [action.modelId]: {
+          ...col,
+          status: 'error',
+          error: { message: action.message, code: action.code }
+        }
+      };
+    }
+    case 'agentStart': {
+      const col = ensure(state, action.modelId, 'idle');
+      return { ...state, [action.modelId]: { ...col, status: 'streaming', steps: col.steps ?? [] } };
+    }
+    case 'agentFragment': {
+      const col = ensure(state, action.modelId, 'streaming');
+      return {
+        ...state,
+        [action.modelId]: { ...col, status: 'streaming', text: col.text + action.text }
+      };
+    }
+    case 'agentStep': {
+      const col = ensure(state, action.modelId, 'streaming');
+      return {
+        ...state,
+        [action.modelId]: { ...col, steps: [...(col.steps ?? []), action.step] }
+      };
+    }
+    case 'agentDone': {
+      const col = ensure(state, action.modelId, 'streaming');
+      return {
+        ...state,
+        [action.modelId]: {
+          ...col,
+          status: action.result.error ? 'error' : 'done',
+          agentResult: action.result,
+          text: action.result.transcript || col.text,
+          error: action.result.error
+        }
+      };
+    }
+    case 'agentError': {
       const col = ensure(state, action.modelId, 'streaming');
       return {
         ...state,

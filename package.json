@@ -2,7 +2,7 @@
   "name": "octogon",
   "displayName": "Octogon",
   "description": "Compare the cost and accuracy of your GitHub Copilot models, side by side, against any open repository.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "publisher": "octogon",
   "repository": {
@@ -10,7 +10,7 @@
     "url": "https://github.com/thomasiverson/octogon.git"
   },
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.95.0"
   },
   "categories": [
     "AI",
@@ -96,6 +96,36 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Build/test command used for **automated verification** of code tasks (e.g. `npm test`). Default unset (verification disabled). Always shown before running."
+        },
+        "octogon.agent.enabled": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Enable **experimental Agent mode** — an opt-in bake-off where each selected model runs as an autonomous, tool-using coding agent in an isolated sandbox. Off by default."
+        },
+        "octogon.agent.maxIterations": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "maximum": 1000,
+          "markdownDescription": "Maximum tool-call iterations per agent before the loop stops. **`0` = unlimited** (let agents run to completion). Set a positive value to cap iterations."
+        },
+        "octogon.agent.timeoutMs": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "markdownDescription": "Wall-clock time budget (ms) per agent before the loop stops. **`0` = no time limit** (run to completion). Set a positive value (e.g. `120000`) to cap runtime. Note: with no limit, a hung model will keep the bake-off running until you press **Cancel**."
+        },
+        "octogon.agent.maxTokens": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "markdownDescription": "Approximate token budget (input context + generated) per agent before the loop stops. **`0` = unlimited**. Set a positive value to cap token usage."
+        },
+        "octogon.agent.commandTimeoutMs": {
+          "type": "number",
+          "default": 600000,
+          "minimum": 10000,
+          "markdownDescription": "Per-command timeout (ms) for shell commands an agent runs in its sandbox (e.g. builds/tests). Independent of the overall agent time budget."
         }
       }
     }
@@ -115,7 +145,7 @@
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@types/vscode": "^1.90.0",
+    "@types/vscode": "^1.95.0",
     "@vitejs/plugin-react": "^4.3.1",
     "@vscode/vsce": "^2.27.0",
     "autoprefixer": "^10.4.19",

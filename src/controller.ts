@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { randomUUID } from 'node:crypto';
 import { ComparePanel } from './webview/panel';
 import {
+  AgentResult,
   ContextRef,
   CostEstimate,
   HISTORY_SCHEMA_VERSION,
@@ -28,6 +29,18 @@ import { buildJudgePrompt, JudgeInput, parseJudgeResponse } from './scoring/judg
 import { clampRating } from './scoring/manual';
 import { computeLeaderboard } from './shared/leaderboard';
 import { verifyResponse } from './scoring/verify';
+import {
+  createSandbox,
+  disposeSandbox,
+  gitDiff,
+  gitNumstat,
+  linkNodeModules,
+  runCommand,
+  Sandbox,
+  summarizeNumstat
+} from './agent/sandbox';
+import { runAgent, AgentCaps } from './agent/loop';
+import { rankAgents } from './agent/agentRanking';
 import { HistoryStore } from './store/historyStore';
 import { buildMarkdownSummary } from './store/exporter';
 import { computeModelStats } from './store/modelStats';
@@ -43,6 +56,16 @@ interface RunState {
   winner: string | null;
 }
 
+/** In-memory state for the current agent bake-off, retained so a winning
+ *  sandbox diff can be applied after the run completes. */
+interface AgentRunState {
+  runId: string;
+  modelIds: string[];
+  modelNames: Record<string, string>;
+  sandboxes: Map<string, Sandbox>;
+  results: Map<string, AgentResult>;
+}
+
 /**
  * Owns all message routing and business logic for a ComparePanel. Created once
  * per panel; services are added phase by phase (registry, orchestrator, cost,
@@ -54,6 +77,7 @@ export class OctogonController {
   private currentRun: vscode.CancellationTokenSource | undefined;
   private pricingTable: PricingTable | undefined;
   private lastRun: RunState | undefined;
+  private agentRun: AgentRunState | undefined;
   /** Last focused file editor — the webview steals activeTextEditor focus. */
   private lastActiveEditor: vscode.TextEditor | undefined;
 
@@ -150,6 +174,18 @@ export class OctogonController {
         break;
       case 'runVerify':
         await this.handleVerify(msg.runId, msg.modelId);
+        break;
+      case 'applyAgent':
+        await this.handleApplyAgent(msg.runId, msg.modelId);
+        break;
+      case 'previewAgent':
+        await this.handlePreviewAgent(msg.runId, msg.modelId);
+        break;
+      case 'discardAgent':
+        await this.discardAgentRun(msg.runId);
+        break;
+      case 'enableAgent':
+        await this.handleEnableAgent();
         break;
       case 'cancel':
         this.cancelCurrentRun();
@@ -250,6 +286,11 @@ export class OctogonController {
       return;
     }
 
+    if (options.mode === 'agent') {
+      await this.handleAgentRun(prompt, modelIds, options);
+      return;
+    }
+
     this.cancelCurrentRun();
     const models = await this.registry.resolve(modelIds);
     if (models.length === 0) {
@@ -330,6 +371,374 @@ export class OctogonController {
 
   private cancelCurrentRun(): void {
     this.currentRun?.cancel();
+  }
+
+  // -------------------------------------------------------------------------
+  // Agent bake-off (Phase 8): each model runs as an autonomous agent in its own
+  // sandbox; diffs/tests/cost compared; a winning diff can be applied.
+  // -------------------------------------------------------------------------
+
+  private readAgentCaps(): AgentCaps {
+    const cfg = vscode.workspace.getConfiguration('octogon');
+    return {
+      // 0 = unlimited; by default let agents run to completion for a fair,
+      // truthful comparison. Users who need limits can set positive values.
+      maxIterations: Math.max(0, cfg.get<number>('agent.maxIterations', 0)),
+      timeoutMs: Math.max(0, cfg.get<number>('agent.timeoutMs', 0)),
+      maxTokens: Math.max(0, cfg.get<number>('agent.maxTokens', 0))
+    };
+  }
+
+  private async handleAgentRun(
+    prompt: string,
+    modelIds: string[],
+    options: RunOptions
+  ): Promise<void> {
+    const cfg = vscode.workspace.getConfiguration('octogon');
+    if (!cfg.get<boolean>('agent.enabled', false)) {
+      await this.panel.post({
+        type: 'notice',
+        level: 'warn',
+        message: 'Agent mode is off. Enable "octogon.agent.enabled" in settings to use it.'
+      });
+      return;
+    }
+
+    const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!root) {
+      await this.panel.post({ type: 'notice', level: 'warn', message: 'Open a folder to run agent mode.' });
+      return;
+    }
+
+    const models = await this.registry.resolve(modelIds);
+    if (models.length === 0) {
+      await this.panel.post({
+        type: 'notice',
+        level: 'error',
+        message: 'Selected models are no longer available. Refresh the model list.'
+      });
+      return;
+    }
+
+    const caps = this.readAgentCaps();
+    const verifyCommand = cfg.get<string>('verifyCommand', '').trim();
+
+    // Explicit, non-silent consent. Agents edit files and may run commands in an
+    // isolated sandbox copy of the workspace; the real working tree is untouched
+    // until the user applies a winning diff.
+    const allowLabel = 'Run (allow commands)';
+    const noCmdLabel = 'Run (no commands)';
+    const detail = [
+      `${models.length} model(s) will each work in an isolated sandbox copy of this workspace.`,
+      `Caps per agent: ${caps.maxIterations > 0 ? `${caps.maxIterations} iterations` : 'unlimited iterations'}, ${caps.timeoutMs > 0 ? `${Math.round(caps.timeoutMs / 1000)}s` : 'no time limit'}, ${caps.maxTokens > 0 ? `${caps.maxTokens} tokens` : 'unlimited tokens'}.`,
+      verifyCommand
+        ? `Allowing commands lets agents run shell commands (e.g. "${verifyCommand}") inside their sandbox.`
+        : 'Allowing commands lets agents run shell commands inside their sandbox.',
+      'Your real working tree is never modified until you apply a winner.'
+    ].join('\n\n');
+    const choice = await vscode.window.showWarningMessage(
+      'Start the Octogon agent bake-off?',
+      { modal: true, detail },
+      allowLabel,
+      noCmdLabel
+    );
+    if (choice !== allowLabel && choice !== noCmdLabel) return;
+    const allowCommands = choice === allowLabel;
+
+    // Tear down any previous run and previous retained agent sandboxes.
+    this.cancelCurrentRun();
+    await this.clearAgentSandboxes();
+
+    const runId = randomUUID();
+    const cts = new vscode.CancellationTokenSource();
+    this.currentRun = cts;
+
+    const table = await this.getPricing();
+    const identities = new Map<string, ModelIdentity>(
+      models.map((m) => [m.id, { id: m.id, family: m.family, name: m.name }])
+    );
+
+    await this.panel.post({ type: 'runStarted', runId, modelIds: models.map((m) => m.id), mode: 'agent' });
+
+    const context = await this.buildContext(prompt, models, options, cts.token);
+    await this.panel.post({ type: 'context', runId, context: context.info });
+
+    const agentState: AgentRunState = {
+      runId,
+      modelIds: models.map((m) => m.id),
+      modelNames: Object.fromEntries(models.map((m) => [m.id, m.name])),
+      sandboxes: new Map(),
+      results: new Map()
+    };
+    this.agentRun = agentState;
+
+    const commandTimeoutMs = Math.max(10_000, cfg.get<number>('agent.commandTimeoutMs', 600_000));
+
+    const runForModel = async (model: vscode.LanguageModelChat): Promise<void> => {
+      let sandbox: Sandbox | undefined;
+      try {
+        // Sandboxes are created sequentially via this awaited call to avoid git
+        // worktree races; loops then run concurrently.
+        sandbox = await createSandbox(root);
+        agentState.sandboxes.set(model.id, sandbox);
+        await linkNodeModules(root, sandbox);
+
+        const result = await runAgent({
+          model,
+          sandbox,
+          task: prompt,
+          contextBlock: context.block,
+          caps,
+          commandTimeoutMs,
+          allowCommand: () => allowCommands,
+          token: cts.token,
+          handlers: {
+            onStart: () => void this.panel.post({ type: 'agentStart', runId, modelId: model.id }),
+            onFragment: (text) =>
+              void this.panel.post({ type: 'agentFragment', runId, modelId: model.id, text }),
+            onStep: (step) => void this.panel.post({ type: 'agentStep', runId, modelId: model.id, step })
+          }
+        });
+
+        // Summarize the sandbox diff.
+        try {
+          const summary = summarizeNumstat(await gitNumstat(sandbox));
+          result.diff = summary;
+          result.filesChanged = summary.filesChanged;
+        } catch (err) {
+          console.warn('[octogon] agent diff failed:', err);
+        }
+
+        // Optionally run the verify command in the sandbox.
+        if (allowCommands && verifyCommand && result.filesChanged > 0 && !cts.token.isCancellationRequested) {
+          try {
+            const { exitCode, log } = await runCommand(
+              verifyCommand,
+              sandbox.dir,
+              commandTimeoutMs,
+              cts.token
+            );
+            result.verify = {
+              modelId: model.id,
+              passed: exitCode === 0,
+              exitCode,
+              command: verifyCommand,
+              log
+            };
+          } catch (err) {
+            console.warn('[octogon] agent verify failed:', err);
+          }
+        }
+
+        // Token cost from the loop's input/output estimate.
+        if (table) {
+          const identity = identities.get(model.id);
+          if (identity) {
+            result.cost = tokenCost(table, identity, result.tokens.input, result.tokens.output);
+          }
+        }
+
+        agentState.results.set(model.id, result);
+        await this.panel.post({ type: 'agentDone', runId, modelId: model.id, result });
+      } catch (err) {
+        await this.panel.post({
+          type: 'agentError',
+          runId,
+          modelId: model.id,
+          message: err instanceof Error ? err.message : String(err)
+        });
+      }
+    };
+
+    try {
+      await Promise.allSettled(models.map((m) => runForModel(m)));
+      const agentLeaderboard = rankAgents([...agentState.results.values()]);
+      await this.panel.post({ type: 'runComplete', runId, leaderboard: {}, agentLeaderboard });
+
+      // On cancellation, retain nothing \u2014 dispose sandboxes immediately.
+      if (cts.token.isCancellationRequested) {
+        await this.clearAgentSandboxes();
+      }
+    } finally {
+      if (this.currentRun === cts) {
+        this.currentRun = undefined;
+      }
+      cts.dispose();
+    }
+  }
+
+  /** Apply a winning agent's sandbox diff to the real working tree (with review). */
+  private async handleApplyAgent(runId: string, modelId: string): Promise<void> {
+    if (!this.agentRun || this.agentRun.runId !== runId) {
+      await this.panel.post({ type: 'notice', level: 'warn', message: 'That agent run is no longer available.' });
+      return;
+    }
+    const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const sandbox = this.agentRun.sandboxes.get(modelId);
+    const result = this.agentRun.results.get(modelId);
+    const name = this.agentRun.modelNames[modelId] ?? modelId;
+
+    if (!root || !sandbox || !sandbox.isWorktree) {
+      await this.panel.post({
+        type: 'agentApplied',
+        runId,
+        modelId,
+        ok: false,
+        message: 'This run has no applyable git diff (a git worktree sandbox is required).'
+      });
+      return;
+    }
+    if (!result || result.filesChanged === 0) {
+      await this.panel.post({
+        type: 'agentApplied',
+        runId,
+        modelId,
+        ok: false,
+        message: 'That agent made no file changes to apply.'
+      });
+      return;
+    }
+
+    const patch = await gitDiff(sandbox);
+    if (!patch.trim()) {
+      await this.panel.post({
+        type: 'agentApplied',
+        runId,
+        modelId,
+        ok: false,
+        message: 'No diff was produced by that agent.'
+      });
+      return;
+    }
+
+    const files = result.diff?.files.map((f) => f.path).join(', ') ?? '';
+    const applyLabel = 'Apply to working tree';
+    const previewLabel = 'Preview patch';
+    let choice = await vscode.window.showWarningMessage(
+      `Apply ${name}'s changes to your working tree?`,
+      {
+        modal: true,
+        detail: `${result.filesChanged} file(s): ${files}\n\nReview the result in Source Control before committing. Other agent sandboxes will be discarded.`
+      },
+      applyLabel,
+      previewLabel
+    );
+
+    if (choice === previewLabel) {
+      const doc = await vscode.workspace.openTextDocument({ language: 'diff', content: patch });
+      await vscode.window.showTextDocument(doc, { preview: true });
+      choice = await vscode.window.showWarningMessage(
+        `Apply ${name}'s changes to your working tree?`,
+        { modal: true, detail: `${result.filesChanged} file(s): ${files}` },
+        applyLabel
+      );
+    }
+    if (choice !== applyLabel) return;
+
+    // Apply the patch via a temp file so git reads it verbatim.
+    const tmpPatch = vscode.Uri.joinPath(this.context.globalStorageUri, `octogon-apply-${runId}.patch`);
+    try {
+      await vscode.workspace.fs.writeFile(tmpPatch, Buffer.from(patch, 'utf8'));
+      const apply = await runCommand(
+        `git apply --3way --whitespace=nowarn "${tmpPatch.fsPath}"`,
+        root,
+        60_000
+      );
+      if (apply.exitCode !== 0) {
+        await this.panel.post({
+          type: 'agentApplied',
+          runId,
+          modelId,
+          ok: false,
+          message: `git apply failed (exit ${apply.exitCode}). ${apply.log.slice(-400)}`
+        });
+        return;
+      }
+      await this.panel.post({
+        type: 'agentApplied',
+        runId,
+        modelId,
+        ok: true,
+        message: `Applied ${name}'s changes (${result.filesChanged} file(s)). Review them in Source Control.`
+      });
+      // Winner applied \u2014 discard all sandboxes.
+      await this.clearAgentSandboxes();
+      await vscode.commands.executeCommand('workbench.view.scm');
+    } catch (err) {
+      await this.panel.post({
+        type: 'agentApplied',
+        runId,
+        modelId,
+        ok: false,
+        message: `Apply failed: ${err instanceof Error ? err.message : String(err)}`
+      });
+    } finally {
+      try {
+        await vscode.workspace.fs.delete(tmpPatch);
+      } catch {
+        // best effort
+      }
+    }
+  }
+
+  /** Open one agent's sandbox diff in an editor tab for inspection (no apply). */
+  private async handlePreviewAgent(runId: string, modelId: string): Promise<void> {
+    if (!this.agentRun || this.agentRun.runId !== runId) {
+      await this.panel.post({ type: 'notice', level: 'warn', message: 'That agent run is no longer available.' });
+      return;
+    }
+    const sandbox = this.agentRun.sandboxes.get(modelId);
+    const name = this.agentRun.modelNames[modelId] ?? modelId;
+    if (!sandbox || !sandbox.isWorktree) {
+      await this.panel.post({ type: 'notice', level: 'warn', message: `No viewable diff for ${name}.` });
+      return;
+    }
+    const patch = await gitDiff(sandbox);
+    if (!patch.trim()) {
+      await this.panel.post({ type: 'notice', level: 'info', message: `${name} produced no changes.` });
+      return;
+    }
+    // Write the patch to a per-model temp file so the editor tab is titled by the
+    // model id, making side-by-side comparison of several diffs easy.
+    const safe = modelId.replace(/[^a-zA-Z0-9._-]+/g, '-');
+    const uri = vscode.Uri.joinPath(this.context.globalStorageUri, `octogon-diff-${safe}.diff`);
+    try {
+      await vscode.workspace.fs.writeFile(uri, Buffer.from(patch, 'utf8'));
+      const doc = await vscode.workspace.openTextDocument(uri);
+      await vscode.window.showTextDocument(doc, { preview: false });
+    } catch (err) {
+      await this.panel.post({
+        type: 'notice',
+        level: 'error',
+        message: `Could not open ${name}'s diff: ${err instanceof Error ? err.message : String(err)}`
+      });
+    }
+  }
+
+  private async discardAgentRun(runId: string): Promise<void> {
+    if (this.agentRun && this.agentRun.runId !== runId) return;
+    const count = this.agentRun?.sandboxes.size ?? 0;
+    await this.clearAgentSandboxes();
+    await this.panel.post({
+      type: 'agentDiscarded',
+      runId,
+      message:
+        count > 0
+          ? `Discarded the bake-off — cleaned up ${count} agent sandbox${count === 1 ? '' : 'es'}. Nothing was applied to your working tree.`
+          : 'Agent sandboxes cleaned up. Nothing was applied to your working tree.'
+    });
+  }
+
+  /** Dispose and forget all retained agent sandboxes for the current run. */
+  private async clearAgentSandboxes(): Promise<void> {
+    const state = this.agentRun;
+    this.agentRun = undefined;
+    if (!state) return;
+    const root = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (!root) return;
+    for (const sandbox of state.sandboxes.values()) {
+      await disposeSandbox(root, sandbox);
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -815,8 +1224,22 @@ export class OctogonController {
       judgeModelId: cfg.get<string>('judgeModelId', ''),
       verifyCommand: cfg.get<string>('verifyCommand', ''),
       pricingLastUpdated,
-      aiCreditUsd
+      aiCreditUsd,
+      agentEnabled: cfg.get<boolean>('agent.enabled', false)
     };
+  }
+
+  /** Turn on Agent mode from the UI so users don't have to edit settings by hand. */
+  private async handleEnableAgent(): Promise<void> {
+    const cfg = vscode.workspace.getConfiguration('octogon');
+    await cfg.update('agent.enabled', true, vscode.ConfigurationTarget.Global);
+    await this.sendInit();
+    await this.panel.post({
+      type: 'notice',
+      level: 'info',
+      message:
+        'Agent mode enabled. Each run still asks before any terminal commands are executed.'
+    });
   }
 
   /** Clear all persisted run history (also exposed via octogon.clearHistory). */
@@ -830,5 +1253,11 @@ export class OctogonController {
     await this.store.clear();
     await this.sendHistory();
     await this.panel.post({ type: 'notice', level: 'info', message: 'Run history cleared.' });
+  }
+
+  /** Cancel in-flight work and clean up any retained agent sandboxes. */
+  public dispose(): void {
+    this.cancelCurrentRun();
+    void this.clearAgentSandboxes();
   }
 }

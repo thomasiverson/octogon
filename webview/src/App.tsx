@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { onMessage, post } from './vscodeApi';
 import type {
+  AgentLeaderboard,
   ContextInfo,
   CostEstimate,
   Leaderboard as LeaderboardData,
@@ -17,6 +18,8 @@ import { computeClientLeaderboard } from './leaderboard';
 import { PromptBar } from './components/PromptBar';
 import { ModelPicker } from './components/ModelPicker';
 import { ResultGrid } from './components/ResultGrid';
+import { AgentGrid } from './components/AgentGrid';
+import { ModeToggle } from './components/ModeToggle';
 import { CostPreview } from './components/CostPreview';
 import { Leaderboard } from './components/Leaderboard';
 import { ContextPanel } from './components/ContextPanel';
@@ -76,7 +79,12 @@ export function App() {
   const [referenceAnswer, setReferenceAnswer] = useState('');
   const [showReference, setShowReference] = useState(false);
   const [judgeModelId, setJudgeModelId] = useState('');
+  const [mode, setMode] = useState<'ask' | 'agent'>('ask');
+  const [runMode, setRunMode] = useState<'ask' | 'agent'>('ask');
+  const [agentLeaderboard, setAgentLeaderboard] = useState<AgentLeaderboard | undefined>();
+  const [agentCleanedUp, setAgentCleanedUp] = useState(false);
   const runIdRef = useRef<string | null>(null);
+  const pendingAgentRef = useRef(false);
 
   useEffect(() => {
     const off = onMessage((msg) => {
@@ -85,6 +93,10 @@ export function App() {
           setModels(msg.models);
           setConfig(msg.config);
           setTopK(msg.config.retrievalTopK);
+          if (pendingAgentRef.current && msg.config.agentEnabled) {
+            pendingAgentRef.current = false;
+            setMode('agent');
+          }
           break;
         case 'models':
           setModels(msg.models);
@@ -115,6 +127,9 @@ export function App() {
         case 'runStarted':
           runIdRef.current = msg.runId;
           setOrder(msg.modelIds);
+          setRunMode(msg.mode ?? 'ask');
+          setAgentLeaderboard(undefined);
+          setAgentCleanedUp(false);
           setLeaderboard(undefined);
           setContextInfo(null);
           setWinner(null);
@@ -146,10 +161,44 @@ export function App() {
             dispatch({ type: 'modelError', modelId: msg.modelId, message: msg.message, code: msg.code });
           }
           break;
+        case 'agentStart':
+          if (msg.runId === runIdRef.current) {
+            dispatch({ type: 'agentStart', modelId: msg.modelId });
+          }
+          break;
+        case 'agentFragment':
+          if (msg.runId === runIdRef.current) {
+            dispatch({ type: 'agentFragment', modelId: msg.modelId, text: msg.text });
+          }
+          break;
+        case 'agentStep':
+          if (msg.runId === runIdRef.current) {
+            dispatch({ type: 'agentStep', modelId: msg.modelId, step: msg.step });
+          }
+          break;
+        case 'agentDone':
+          if (msg.runId === runIdRef.current) {
+            dispatch({ type: 'agentDone', modelId: msg.modelId, result: msg.result });
+          }
+          break;
+        case 'agentError':
+          if (msg.runId === runIdRef.current) {
+            dispatch({ type: 'agentError', modelId: msg.modelId, message: msg.message, code: msg.code });
+          }
+          break;
+        case 'agentApplied':
+          setNotice({ level: msg.ok ? 'info' : 'error', message: msg.message });
+          if (msg.ok) setAgentCleanedUp(true);
+          break;
+        case 'agentDiscarded':
+          setNotice({ level: 'info', message: msg.message });
+          setAgentCleanedUp(true);
+          break;
         case 'runComplete':
           if (msg.runId === runIdRef.current) {
             setRunning(false);
             setLeaderboard(msg.leaderboard);
+            setAgentLeaderboard(msg.agentLeaderboard);
           }
           break;
         case 'judgeDone':
@@ -198,6 +247,9 @@ export function App() {
           }
           dispatch({ type: 'load', columns: cols });
           setOrder(run.modelIds);
+          setRunMode('ask');
+          setAgentLeaderboard(undefined);
+          setAgentCleanedUp(false);
           setWinner(run.winner ?? null);
           setLeaderboard(computeClientLeaderboard(run.results));
           setContextInfo({
@@ -228,7 +280,8 @@ export function App() {
     useActiveFile,
     attachedFiles,
     useRetrieval,
-    retrievalTopK: topK
+    retrievalTopK: topK,
+    mode
   });
 
   const toggleModel = (id: string) => {
@@ -277,6 +330,37 @@ export function App() {
     setPreview(null);
     setPreviewing(true);
     post({ type: 'previewCost', prompt, modelIds: ids, options: buildOptions() });
+  };
+
+  // Agent runs skip the cost preview (cost depends on the loop) and go straight
+  // to the extension's consent modal.
+  const startRun = () => {
+    const ids = selectedIds();
+    if (ids.length === 0 || !prompt.trim()) return;
+    if (mode === 'agent') {
+      setPreview(null);
+      post({ type: 'run', prompt, modelIds: ids, options: buildOptions() });
+      return;
+    }
+    requestPreview();
+  };
+
+  const applyAgent = (modelId: string) => {
+    if (runIdRef.current) {
+      post({ type: 'applyAgent', runId: runIdRef.current, modelId });
+    }
+  };
+
+  const discardAgent = () => {
+    if (runIdRef.current) {
+      post({ type: 'discardAgent', runId: runIdRef.current });
+    }
+  };
+
+  const previewAgent = (modelId: string) => {
+    if (runIdRef.current) {
+      post({ type: 'previewAgent', runId: runIdRef.current, modelId });
+    }
   };
 
   const confirmRun = () => {
@@ -337,6 +421,9 @@ export function App() {
     dispatch({ type: 'reset' });
     setOrder([]);
     setLeaderboard(undefined);
+    setAgentLeaderboard(undefined);
+    setAgentCleanedUp(false);
+    setRunMode('ask');
     setContextInfo(null);
     setWinner(null);
   };
@@ -448,11 +535,29 @@ export function App() {
       <PromptBar
         prompt={prompt}
         onPromptChange={changePrompt}
-        onRun={requestPreview}
+        onRun={startRun}
         running={running}
         previewing={previewing}
         canRun={canRun}
       />
+
+      <div className="flex flex-wrap items-center gap-2">
+        <ModeToggle
+          mode={mode}
+          onChange={setMode}
+          agentEnabled={config?.agentEnabled ?? false}
+          disabled={running}
+          onEnableRequest={() => {
+            pendingAgentRef.current = true;
+            post({ type: 'enableAgent' });
+          }}
+        />
+        {mode === 'agent' && (
+          <span className="text-[11px] text-vscode-desc">
+            Each model works in its own sandbox · apply a winning diff when done
+          </span>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-center gap-2">
         {running ? (
@@ -466,13 +571,17 @@ export function App() {
           <button
             className="rounded bg-vscode-btn-bg px-3 py-1.5 text-vscode-btn-fg hover:bg-vscode-btn-hover disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!canRun || previewing}
-            onClick={requestPreview}
+            onClick={startRun}
           >
-            {previewing ? 'Estimating cost…' : 'Run comparison'}
+            {previewing
+              ? 'Estimating cost…'
+              : mode === 'agent'
+                ? 'Run agent bake-off'
+                : 'Run comparison'}
           </button>
         )}
 
-        {hasResults && !loadedRun && (
+        {hasResults && !loadedRun && runMode === 'ask' && (
           <button
             className="rounded bg-vscode-btn-sec-bg px-3 py-1.5 text-vscode-btn-sec-fg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={running || verifying}
@@ -497,7 +606,7 @@ export function App() {
         <span className="ml-auto text-[11px] text-vscode-desc">Ctrl/Cmd+Enter to run</span>
       </div>
 
-      {hasResults && !loadedRun && (
+      {hasResults && !loadedRun && runMode === 'ask' && (
         <div className="flex flex-wrap items-center gap-2">
           <button
             className="rounded bg-vscode-btn-sec-bg px-3 py-1.5 text-vscode-btn-sec-fg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
@@ -532,7 +641,7 @@ export function App() {
         </div>
       )}
 
-      {showReference && hasResults && !loadedRun && (
+      {showReference && hasResults && !loadedRun && runMode === 'ask' && (
         <textarea
           className="min-h-[60px] w-full resize-y rounded border border-vscode-input-border bg-vscode-input-bg p-2 text-xs text-vscode-input-fg outline-none focus:border-vscode-link"
           placeholder="Optional reference answer — when provided, the LLM judge scores responses against it."
@@ -596,18 +705,60 @@ export function App() {
 
       {contextInfo && <ContextDisclosure context={contextInfo} />}
 
-      {leaderboard && !running && <Leaderboard leaderboard={leaderboard} nameFor={nameFor} />}
+      {leaderboard && !running && runMode === 'ask' && (
+        <Leaderboard leaderboard={leaderboard} nameFor={nameFor} />
+      )}
 
-      <ResultGrid
-        order={order}
-        columns={columns}
-        titleFor={titleFor}
-        leaderboard={leaderboard}
-        winner={winner}
-        readOnly={Boolean(loadedRun)}
-        onRate={rate}
-        onPickWinner={pickWinner}
-      />
+      {runMode === 'agent' && agentLeaderboard?.recommended && !running && (
+        <div className="flex shrink-0 items-center gap-2 rounded border border-yellow-400/50 bg-yellow-400/10 px-3 py-2 text-xs">
+          <span>🏆</span>
+          <span>
+            Recommended: <span className="font-semibold">{nameFor(agentLeaderboard.recommended.modelId)}</span>{' '}
+            <span className="text-vscode-desc">({agentLeaderboard.recommended.basis})</span>
+          </span>
+        </div>
+      )}
+
+      {runMode === 'agent' && hasResults && !running && !loadedRun && (
+        <div className="flex shrink-0 items-center gap-2 text-xs">
+          {agentCleanedUp ? (
+            <span className="text-vscode-desc">
+              🧹 Sandboxes cleaned up — nothing was applied to your working tree.
+            </span>
+          ) : (
+            <button
+              className="rounded bg-vscode-btn-sec-bg px-3 py-1 text-vscode-btn-sec-fg hover:opacity-90"
+              onClick={discardAgent}
+              title="Delete all agent sandboxes without applying any changes"
+            >
+              🧹 Discard bake-off (apply nothing)
+            </button>
+          )}
+        </div>
+      )}
+
+      {runMode === 'agent' ? (
+        <AgentGrid
+          order={order}
+          columns={columns}
+          titleFor={titleFor}
+          board={agentLeaderboard}
+          readOnly={Boolean(loadedRun) || agentCleanedUp}
+          onApply={applyAgent}
+          onPreview={previewAgent}
+        />
+      ) : (
+        <ResultGrid
+          order={order}
+          columns={columns}
+          titleFor={titleFor}
+          leaderboard={leaderboard}
+          winner={winner}
+          readOnly={Boolean(loadedRun)}
+          onRate={rate}
+          onPickWinner={pickWinner}
+        />
+      )}
 
       <footer className="shrink-0 text-[10px] leading-snug text-vscode-desc">
         Costs are estimates from Copilot usage-based rates (1 AI credit = $0.01). Running

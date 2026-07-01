@@ -198,7 +198,7 @@ ai-cost-comparison/
 
 ## Getting started (development)
 
-The extension lives at the **repo root** (the `plan/` folder is documentation only).
+The extension lives at the **repo root**.
 
 ```bash
 npm install

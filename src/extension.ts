@@ -10,6 +10,7 @@ export function activate(context: vscode.ExtensionContext): void {
     if (!controller) {
       controller = new OctogonController(panel, context);
       const sub = panel.onDidDispose(() => {
+        controller?.dispose();
         controller = undefined;
         sub.dispose();
       });

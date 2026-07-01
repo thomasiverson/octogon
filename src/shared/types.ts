@@ -105,6 +105,8 @@ export interface RunOptions {
   retrievalTopK?: number;
   /** Optional reference answer for the judge. */
   referenceAnswer?: string;
+  /** 'ask' = response comparison (default); 'agent' = autonomous agent bake-off. */
+  mode?: 'ask' | 'agent';
 }
 
 export interface CostEstimate {
@@ -150,6 +152,77 @@ export interface ModelStat {
 }
 
 // ---------------------------------------------------------------------------
+// Agent mode (Phase 8) — autonomous tool-using bake-off
+// ---------------------------------------------------------------------------
+
+/** One file's line-change counts in an agent's sandbox diff. */
+export interface AgentDiffFile {
+  path: string;
+  additions: number;
+  deletions: number;
+  binary: boolean;
+}
+
+export interface AgentDiffSummary {
+  filesChanged: number;
+  additions: number;
+  deletions: number;
+  files: AgentDiffFile[];
+}
+
+/** A completed tool call within an agent loop, recorded for the transcript. */
+export interface AgentStep {
+  iteration: number;
+  tool: string;
+  /** Stringified, truncated tool arguments. */
+  args: string;
+  /** Truncated tool result text. */
+  result: string;
+  ok: boolean;
+}
+
+export type AgentStopReason =
+  | 'finished'
+  | 'max-iterations'
+  | 'timeout'
+  | 'cancelled'
+  | 'token-budget'
+  | 'error';
+
+/** Outcome of one model running as an agent in its own sandbox. */
+export interface AgentResult {
+  modelId: string;
+  /** The model's natural-language narration across the run. */
+  transcript: string;
+  steps: AgentStep[];
+  iterations: number;
+  tokens: TokenCounts;
+  latencyMs: number;
+  cost?: CostBreakdown;
+  stopReason: AgentStopReason;
+  diff?: AgentDiffSummary;
+  /** Files the agent changed in its sandbox. */
+  filesChanged: number;
+  /** True when the sandbox is a git worktree whose diff can be applied. */
+  canApply: boolean;
+  /** Test outcome when the verify command ran in the sandbox. */
+  verify?: VerifyResult;
+  /** Final summary text from the `finish` tool, if any. */
+  summary?: string;
+  error?: { message: string; code?: string };
+}
+
+/** Cross-model agent leaderboard (winner heuristics). */
+export interface AgentLeaderboard {
+  passedTests?: { modelId: string };
+  smallestDiff?: { modelId: string; value: number };
+  cheapest?: { modelId: string; value: number };
+  fewestIterations?: { modelId: string; value: number };
+  /** Overall recommended winner + the reason it was chosen. */
+  recommended?: { modelId: string; basis: string };
+}
+
+// ---------------------------------------------------------------------------
 // Persistence
 // ---------------------------------------------------------------------------
 
@@ -190,6 +263,8 @@ export interface OctogonConfig {
   verifyCommand: string;
   pricingLastUpdated: string;
   aiCreditUsd: number;
+  /** True when octogon.agent.enabled is set — gates the Ask|Agent toggle. */
+  agentEnabled: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -200,13 +275,20 @@ export type ExtensionToWebview =
   | { type: 'init'; models: ModelInfo[]; config: OctogonConfig }
   | { type: 'models'; models: ModelInfo[] }
   | { type: 'activeFile'; path: string | null }
-  | { type: 'runStarted'; runId: string; modelIds: string[] }
+  | { type: 'runStarted'; runId: string; modelIds: string[]; mode?: 'ask' | 'agent' }
   | { type: 'context'; runId: string; context: ContextInfo }
   | { type: 'modelStart'; runId: string; modelId: string }
   | { type: 'fragment'; runId: string; modelId: string; text: string }
   | { type: 'modelDone'; runId: string; modelId: string; result: ModelResult }
   | { type: 'modelError'; runId: string; modelId: string; message: string; code?: string }
-  | { type: 'runComplete'; runId: string; leaderboard: Leaderboard }
+  | { type: 'runComplete'; runId: string; leaderboard: Leaderboard; agentLeaderboard?: AgentLeaderboard }
+  | { type: 'agentStart'; runId: string; modelId: string }
+  | { type: 'agentFragment'; runId: string; modelId: string; text: string }
+  | { type: 'agentStep'; runId: string; modelId: string; step: AgentStep }
+  | { type: 'agentDone'; runId: string; modelId: string; result: AgentResult }
+  | { type: 'agentError'; runId: string; modelId: string; message: string; code?: string }
+  | { type: 'agentApplied'; runId: string; modelId: string; ok: boolean; message: string }
+  | { type: 'agentDiscarded'; runId: string; message: string }
   | { type: 'costPreview'; estimates: CostEstimate[]; totalUsd: number; totalCredits: number; expectedOutputTokens: number }
   | { type: 'judgeDone'; runId: string; scores: JudgeScore[] }
   | { type: 'judgeError'; runId: string; message: string }
@@ -239,4 +321,8 @@ export type WebviewToExtension =
   | { type: 'clearHistory' }
   | { type: 'loadModelStats' }
   | { type: 'runVerify'; runId: string; modelId?: string }
+  | { type: 'applyAgent'; runId: string; modelId: string }
+  | { type: 'previewAgent'; runId: string; modelId: string }
+  | { type: 'discardAgent'; runId: string }
+  | { type: 'enableAgent' }
   | { type: 'log'; message: string };
