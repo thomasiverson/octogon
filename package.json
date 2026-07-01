@@ -2,12 +2,16 @@
   "name": "octogon",
   "displayName": "Octogon",
   "description": "Compare the cost and accuracy of your GitHub Copilot models, side by side, against any open repository.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "license": "MIT",
   "publisher": "octogon",
   "repository": {
     "type": "git",
     "url": "https://github.com/thomasiverson/octogon.git"
+  },
+  "homepage": "https://github.com/thomasiverson/octogon#readme",
+  "bugs": {
+    "url": "https://github.com/thomasiverson/octogon/issues"
   },
   "engines": {
     "vscode": "^1.95.0"

@@ -791,7 +791,7 @@ export class OctogonController {
       return;
     }
 
-    const judgeModel = await this.pickJudgeModel(judgeModelId);
+    const judgeModel = await this.pickJudgeModel(judgeModelId, this.lastRun.modelIds);
     if (!judgeModel) {
       await this.panel.post({ type: 'judgeError', runId, message: 'No judge model is available.' });
       return;
@@ -858,36 +858,55 @@ export class OctogonController {
     }
   }
 
-  private async pickJudgeModel(preferredId?: string): Promise<vscode.LanguageModelChat | undefined> {
+  private async pickJudgeModel(
+    preferredId?: string,
+    avoidIds?: string[]
+  ): Promise<vscode.LanguageModelChat | undefined> {
     if (this.registry.list().length === 0) {
       await this.safeEnumerate();
     }
     const list = this.registry.list();
     if (list.length === 0) return undefined;
 
-    // 1. Explicit per-run choice from the judge dropdown.
+    // Models that competed in this run. For "Auto" selection we avoid them so a
+    // model never scores its own answer (self-preference bias).
+    const avoid = new Set(avoidIds ?? []);
+
+    // 1. Explicit per-run choice from the judge dropdown — always honored (the
+    //    webview warns the user when it clashes with a competitor).
     const preferred = (preferredId ?? '').trim();
     if (preferred) {
       const match = list.find((m) => m.id === preferred || m.family === preferred);
       if (match) return match;
     }
 
-    // 2. The configured default.
+    // 2. The configured default — honored unless it competed in this run.
     const configured = vscode.workspace
       .getConfiguration('octogon')
       .get<string>('judgeModelId', '')
       .trim();
     if (configured) {
       const match = list.find((m) => m.id === configured || m.family === configured);
-      if (match) return match;
+      if (match && !avoid.has(match.id)) return match;
     }
 
-    // Heuristic preference for a strong evaluator among available models.
+    // 3. Heuristic preference for a strong evaluator, preferring one that did NOT
+    //    compete in this run.
     const priorities = ['opus', 'gpt-5.5', 'sonnet-4', 'gpt-5.4', 'gemini-3.1-pro', 'fable', 'gpt-4o'];
+    const matches = (m: vscode.LanguageModelChat, key: string) =>
+      m.family.toLowerCase().includes(key) || m.name.toLowerCase().includes(key);
+
     for (const key of priorities) {
-      const match = list.find(
-        (m) => m.family.toLowerCase().includes(key) || m.name.toLowerCase().includes(key)
-      );
+      const match = list.find((m) => !avoid.has(m.id) && matches(m, key));
+      if (match) return match;
+    }
+    // Any available model that didn't compete, even if not a preferred evaluator.
+    const anyNonCompetitor = list.find((m) => !avoid.has(m.id));
+    if (anyNonCompetitor) return anyNonCompetitor;
+
+    // Everything available competed — fall back to the strongest, then the first.
+    for (const key of priorities) {
+      const match = list.find((m) => matches(m, key));
       if (match) return match;
     }
     return list[0];

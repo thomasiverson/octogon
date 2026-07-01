@@ -1,57 +1,98 @@
 # Octogon
 
-> Models enter the ring — compare them on **cost** and **accuracy**, side by side. A play on GitHub's *octo-* branding and the octagon competition ring.
+> **Stop guessing which Copilot model to use. Put them in the ring.**
 
-A VS Code extension to compare the **cost** and **accuracy** of the models in your GitHub Copilot model picker — side by side, against any open repository (e.g., OctoCAT Supply).
+[![Download the extension](https://img.shields.io/badge/Download-.vsix%20from%20Releases-2ea44f?logo=visualstudiocode&logoColor=white)](https://github.com/thomasiverson/octogon/releases/latest)
+![VS Code](https://img.shields.io/badge/VS%20Code-1.95%2B-007ACC?logo=visualstudiocode&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+![Built with](https://img.shields.io/badge/TypeScript-%2B%20React-3178C6?logo=typescript&logoColor=white)
 
-Write one prompt, select multiple models from your **actual Copilot picker** (GPT, Claude, Gemini, o-series), run them in parallel, and compare responses, latency, token usage, **cost** (USD and GitHub AI credits), and **quality** (manual rating, LLM-as-judge, and optional automated test verification). Every run can be saved to local history.
+Octogon pits the models in your **GitHub Copilot picker** against each other — same prompt, same repo, side by side — and scores them on the three things you actually care about: **cost**, **speed**, and **accuracy**.
+
+Write one prompt, pick your models, and watch them answer in parallel — then compare responses, latency, token usage, real dollar/credit cost, and quality on one screen. No new API keys, no leaving your editor, no vibes-based decisions.
+
+> [!TIP]
+> **Just want to use it — no source code required?**
+> [**Download the latest `.vsix` from Releases**](https://github.com/thomasiverson/octogon/releases/latest) and install it in VS Code via **Extensions → Install from VSIX…**. No cloning, no compiling, nothing else to set up. Full steps in [Install](#install-recommended).
 
 ---
 
-## Table of contents
+## The problem
 
-- [Why a VS Code extension?](#why-a-vs-code-extension)
-- [Features](#features)
-- [How it works](#how-it-works)
-- [Tech stack](#tech-stack)
-- [Cost model (read this)](#cost-model-read-this)
-- [Repo context strategy](#repo-context-strategy-v1)
-- [Quality / accuracy scoring](#quality--accuracy-scoring)
-- [Project structure](#project-structure)
-- [Implementation roadmap](#implementation-roadmap)
-- [Configuration](#configuration)
-- [Getting started (development)](#getting-started-development)
-- [Testing & verification](#testing--verification)
-- [Decisions & assumptions](#decisions--assumptions)
-- [Open considerations](#open-considerations)
-- [Naming](#naming)
-- [Disclaimers](#disclaimers)
+Copilot now ships a whole roster of models — and as of **June 2026 it's usage-based**, so every token you spend burns AI credits. That means two questions hit you on *every* task:
+
+- **Which model is actually best for _this_ code?**
+- **What is it going to cost me?**
+
+Most people answer both by reputation and gut feel. That's a slow, expensive way to guess — and the "best" model on a benchmark leaderboard is rarely the best model for your repo, your prompt, and your budget.
+
+## Enter the ring
+
+Octogon replaces the guesswork with a head-to-head bout. One prompt goes out to every model you select; the answers stream back into side-by-side columns with a live scorecard underneath. Reputation stops mattering — **your** results do.
+
+```text
+                    one prompt · your repo
+                               │
+          ┌────────────────────┼────────────────────┐
+          ▼                    ▼                    ▼
+    ┌───────────┐        ┌───────────┐        ┌───────────┐
+    │  Model A  │        │  Model B  │        │  Model C  │
+    └───────────┘        └───────────┘        └───────────┘
+          │                    │                    │
+          └────────────────────┼────────────────────┘
+                               ▼
+                   cheapest · fastest · best
+```
+
+---
+
+## Why you'll reach for it
+
+- **See the tradeoff, not the hype.** Cost, latency, and quality for each model, on the same task, at the same time — the real picture a benchmark can't give you.
+- **Know the price *before* you pay it.** A pre-run cost preview estimates USD and AI credits for the whole bout, so nothing surprises your bill. The post-run number is exact.
+- **Judge quality your way.** Rate responses with stars, pick a winner, bring in an LLM-as-judge, or actually run the generated code against your build and tests.
+- **Your models, your repo, your subscription.** Octogon reads the *exact* models in your Copilot picker and works against any open repository — with **no extra API keys** on the core path.
+- **Keep the receipts.** Every bout can be saved to local history, reloaded, compared, and exported to JSON or Markdown. Build a body of evidence for how models perform on *your* work.
+
+---
+
+## What's in the box
+
+| | Feature | Why it matters |
+| --- | --- | --- |
+| ⚔️ | **Side-by-side bouts** | One prompt → N models, streamed in parallel, one column each. |
+| 💸 | **Real cost, not estimates-of-estimates** | Token cost in **USD and GitHub AI credits** (1 credit = $0.01) from a dated, overridable pricing table. |
+| 🔮 | **Pre-run cost preview** | Approve the spend before a single token is sent. |
+| 🏆 | **Live leaderboard** | Cheapest, fastest, and highest-rated — called the moment the round ends. |
+| ⭐ | **Quality scoring** | Manual stars, pick-a-winner, and an opt-in **LLM-as-judge** with rubric + optional reference answer. |
+| 📎 | **Repo-aware context** | Active file, selection, attached files, and lightweight retrieval — token-budgeted and shown transparently per run. |
+| 🤖 | **Agent Mode (experimental)** | Turn each model loose as an autonomous, tool-using coding agent in its own sandbox. |
+| 💾 | **Local history & export** | Save, reload, compare, and export every bout. Nothing leaves your machine. |
+
+---
+
+## The main event: Agent Mode 🤖
+
+Regular bouts compare *answers*. Agent Mode compares *engineers*.
+
+Flip on `octogon.agent.enabled` and each selected model runs as an **autonomous, tool-using coding agent** inside its own **isolated sandbox** copy of your repo. Each one reads files, writes changes, and runs your build or tests on its own — narrating its reasoning step by step — while you watch them work in parallel.
+
+It's the ultimate bake-off: same task, same starting code, N models racing to a working solution. Optional iteration, time, and token caps keep every contender on a leash, and shell commands only run behind an explicit consent gate.
+
+> Off by default. It's opt-in, sandboxed, and consent-gated — because letting models run commands deserves a deliberate "yes."
 
 ---
 
 ## Why a VS Code extension?
 
-The models in your Copilot picker are only reachable through VS Code's **Language Model API** (`vscode.lm`). A standalone web app would have to use the GitHub Models API instead — a different, smaller model set, and no native repo access.
+Because it's the only place the real fight can happen.
 
-By building an extension we get, for free:
+The models in your Copilot picker are reachable *only* through VS Code's **Language Model API** (`vscode.lm`). A standalone web app would be stuck with the smaller GitHub Models API — a different model set and no native repo access. Building as an extension gets you, for free:
 
 - `vscode.lm.selectChatModels({ vendor: 'copilot' })` → the **exact** models in your picker.
-- Native access to **any open repository** — works just like daily Copilot use.
-- Token counting (`model.countTokens`) and context-window limits (`model.maxInputTokens`).
+- Native access to **any open repository** — just like everyday Copilot use.
+- Accurate token counting and per-model context-window limits.
 - Your existing Copilot subscription — **no extra API keys** for the core path.
-
----
-
-## Features
-
-- **Side-by-side comparison panel** (webview) with one prompt → N models.
-- **Parallel streaming** responses, one column per model.
-- **Token-based cost** per model — Copilot's usage-based rates × measured input/output tokens, shown in **USD and GitHub AI credits** (1 credit = $0.01).
-- **Pre-run cost preview** — estimated USD / credits for the run before you spend anything.
-- **Quality scoring**: manual rating (stars / pick-a-winner), LLM-as-judge (rubric + optional reference answer), and — as a stretch — automated build/test verification for code tasks.
-- **Repo-aware context**: active file + selection, manually attached files, and lightweight keyword/semantic retrieval across the open repo (token-budgeted).
-- **Leaderboard**: cheapest / fastest / highest-rated per run.
-- **Local run history** with reload, compare, and export (JSON / Markdown).
 
 ---
 
@@ -72,115 +113,81 @@ flowchart LR
   I --> J[History store]
 ```
 
-1. **Model registry** enumerates Copilot models via `selectChatModels` (handles the consent dialog and the empty-list case).
-2. **Context builder** assembles the prompt from the active file/selection, attached files, and retrieved snippets — folded into the first User message (`vscode.lm` does not support system messages), trimmed to each model's `maxInputTokens`.
-3. **Run orchestrator** calls `model.sendRequest()` for every selected model in parallel, streams results into columns, and records latency + input/output token counts.
-4. **Cost calculator** computes token cost (USD + AI credits) from the local pricing table.
-5. **Quality scoring** captures manual ratings and (optionally) runs an LLM judge and/or automated tests.
-6. **History store** persists the full run to extension global storage.
+1. **Model registry** enumerates your Copilot models and handles the consent dialog.
+2. **Context builder** assembles the prompt from the active file/selection, attached files, and retrieved snippets — trimmed to each model's context window.
+3. **Run orchestrator** fires `sendRequest()` at every model in parallel, streams the columns, and records latency and token counts.
+4. **Cost calculator** turns those tokens into USD and AI credits.
+5. **Quality scoring** captures your ratings and, optionally, an LLM judge or automated tests.
+6. **History store** saves the whole bout locally.
 
 ---
 
-## Tech stack
+## Straight talk on cost
 
-| Layer | Choice |
-| --- | --- |
-| Extension host | TypeScript, VS Code Extension API (`vscode.lm`, workspace, commands, webview) |
-| Webview UI | React 18 + Vite + Tailwind CSS + TypeScript |
-| Extension bundling | esbuild |
-| Storage | JSON (extension global storage) — SQLite optional later |
-| Testing | Vitest/Jest (unit), `@vscode/test-electron` (integration); the LM is **mocked** in tests |
+Octogon exists to help you *spend less*, so it's honest about spending:
 
-This matches both the OctoCAT Supply demo stack and the TypeScript/React conventions in this workspace.
+- **As of June 1, 2026, Copilot bills usage-based.** Tokens convert to **GitHub AI credits at 1 credit = $0.01 USD**, priced per model (input / cached input / output per 1M tokens). Each plan includes an allowance; overage is billed at those rates.
+- Octogon computes cost directly from that model: `inputTokens × inputRate + outputTokens × outputRate`, shown in **USD and credits**.
+- **Comparing N models = N runs.** You pay for the tokens each model consumes; the LLM judge and Agent Mode add more. The pre-run preview and optional budget guard are there so it's always your call.
 
----
+The rate table is **bundled, dated, and overridable** via `octogon.pricingTablePath` — see [src/cost/data/model-pricing.json](src/cost/data/model-pricing.json).
 
-## Cost model (read this)
-
-**As of June 1, 2026, GitHub Copilot bills usage-based.** Token usage is converted to **GitHub AI credits** at **1 credit = $0.01 USD**, priced per model — input / cached input / output per 1M tokens (Anthropic adds a cache-write rate). Each plan includes an AI-credit allowance; overage is billed at those per-token rates.
-
-Octogon computes cost directly from that model:
-
-- **Token cost** = `inputTokens × inputRate + outputTokens × outputRate`, shown in **USD and AI credits**.
-- Because output tokens are only known after a run, the **pre-run preview** estimates from input tokens + a configurable expected-output estimate; the **post-run** number is exact.
-- **Comparing N models = N runs** — you pay for the tokens each model consumes. Enabling the LLM judge adds more.
-
-The rate table is **bundled and pre-populated** (verified 2026-06-25) and user-overridable via `octogon.pricingTablePath`:
-
-- [src/cost/data/model-pricing.json](src/cost/data/model-pricing.json) — usage-based token rates.
-
-> **Note:** Rates change often. Re-verify against GitHub's official **Models and pricing** page; the JSON carries a `lastUpdated` date and `source` URL.
+> Rates change often. The JSON carries a `lastUpdated` date and a `source` URL — re-verify against GitHub's official **Models and pricing** page.
 
 ---
 
-## Repo context strategy (v1)
+## Who it's for
 
-Context is built from, in order, until the token budget is reached:
-
-1. **Active editor file** + current selection.
-2. **Manually attached files** (QuickPick / webview file tree).
-3. **Lightweight retrieval** — keyword/identifier search across the open repo, top-K snippets (closer to `#codebase`).
-
-The exact context injected is shown with each run for transparency. Full embeddings RAG is a possible future upgrade.
+- **Individual developers** who want the best answer per credit on real tasks — not benchmark bragging rights.
+- **Team leads and platform engineers** deciding which models to recommend (and budget for) across a codebase.
+- **The curious** who want to *see*, with receipts, how GPT, Claude, Gemini, and other models actually differ on their code.
 
 ---
 
-## Quality / accuracy scoring
+## Get in the ring
 
-- **Manual** — rate each response (stars) or pick the winner; saved with the run.
-- **LLM-as-judge** — choose a judge model; it scores each response against a rubric (and optional reference answer) and returns a score + rationale. Opt-in (consumes extra tokens/credits).
-- **Automated task verification** *(stretch)* — for code tasks, apply each model's output to a scratch copy of the repo and run its build/tests (e.g., OctoCAT Supply `make build` / `make test`), recording pass/fail.
+### Install (recommended)
 
----
+No cloning, no build — just grab the packaged extension:
 
-## Project structure
+1. Download the latest `octogon-<version>.vsix` from the [**Releases** page](https://github.com/thomasiverson/octogon/releases).
+2. Install it in VS Code, either way:
+   - **Extensions** view → the **⋯** (Views and More Actions) menu → **Install from VSIX…**, then pick the file, or
+   - from a terminal: `code --install-extension octogon-<version>.vsix`
+3. Run **"Octogon: Open"** from the Command Palette. The first run triggers the Copilot consent dialog — grant model access and you're ready to fight.
 
-```text
-ai-cost-comparison/
-├─ package.json                 # manifest: command, configuration, deps
-├─ tsconfig.json
-├─ esbuild.js                   # extension bundler
-├─ src/
-│  ├─ extension.ts              # activate(); registers octogon.open
-│  ├─ models/registry.ts        # enumerate copilot-vendor models
-│  ├─ context/
-│  │  ├─ contextBuilder.ts      # active file + selection + attached
-│  │  └─ retrieval.ts           # lightweight keyword/semantic top-K
-│  ├─ runner/orchestrator.ts    # parallel sendRequest + streaming + metrics
-│  ├─ cost/
-│  │  ├─ costCalculator.ts      # token cost math (USD + AI credits)
-│  │  └─ data/
-│  │     └─ model-pricing.json
-│  ├─ scoring/
-│  │  ├─ manual.ts
-│  │  ├─ judge.ts               # LLM-as-judge
-│  │  └─ verify.ts              # automated tests (stretch)
-│  ├─ store/historyStore.ts     # JSON in globalStorage
-│  ├─ webview/panel.ts          # ComparePanel + typed message protocol
-│  └─ shared/types.ts           # shared result/message types
-├─ webview/                     # React + Vite app
-│  ├─ index.html
-│  ├─ vite.config.ts
-│  └─ src/{main.tsx,App.tsx,components/…}
-├─ media/                       # built webview assets
-├─ test/
-└─ README.md
+The `.vsix` is **fully self-contained** — the extension host code and the React webview are bundled in, so there's nothing else to download or install.
+
+> **Requirements:** VS Code 1.95+ and an active GitHub Copilot subscription (Octogon runs the models already in your Copilot picker).
+
+### Build from source
+
+Prefer to hack on it? Octogon lives at the repo root.
+
+```bash
+npm install
+npm run build        # extension (esbuild) + webview (Vite)
+# Press F5 in VS Code to launch the Extension Development Host
 ```
 
----
+| Script | Purpose |
+| --- | --- |
+| `npm run build` | Build extension + webview |
+| `npm run watch:extension` | Rebuild the extension on change |
+| `npm run compile` | Type-check both projects (no emit) |
+| `npm test` | Run the Vitest unit suite (LM mocked) |
+| `npm run package` | Produce a `.vsix` |
 
-## Implementation roadmap
+### Try it on OctoCAT Supply
 
-| Phase | Deliverable | Independently verifiable? |
-| --- | --- | --- |
-| **0. Scaffold** | Extension + Vite/React/Tailwind webview, `octogon.open` command, typed message protocol | Panel opens |
-| **1. Core loop** | Model enumeration + consent handling + parallel run + side-by-side streaming + latency/tokens | Prompt → 2-3 models → streamed columns |
-| **2. Cost engine** | Token cost (USD + AI credits), pre-run cost preview, leaderboard | Costs + leaderboard render |
-| **3. Repo context** | Active file + attached files + lightweight retrieval, token-budgeted, with transparency | Context shown per run |
-| **4. Quality** | Manual rating + LLM-as-judge (opt-in) | Ratings + judge scores saved |
-| **5. Persistence** | Local history save / reload / compare / export | Reload a past run |
-| **6. Verification (stretch)** | Run code output against repo build/tests | Pass/fail recorded |
-| **7. Polish** | README, settings docs, OctoCAT Supply demo script, disclaimers | — |
+Point Octogon at a real repo in minutes. Full walkthrough in [docs/demo.md](docs/demo.md).
+
+```bash
+# OctoCAT Supply — the GitHub Copilot hands-on demo repo
+git clone https://github.com/microsoft/GitHubCopilot_Customized octocat-supply
+```
+
+Open that folder, run the command, attach a couple of files (or lean on retrieval), and enter a task — for example, *"Add a discount field to the Product model and update related components"* — then pick 2–3 models and let them go.
 
 ---
 
@@ -189,83 +196,73 @@ ai-cost-comparison/
 | Setting | Description | Default |
 | --- | --- | --- |
 | `octogon.pricingTablePath` | Override path for the token pricing JSON | bundled |
-| `octogon.expectedOutputTokens` | Assumed output tokens for the pre-run cost estimate | `800` |
+| `octogon.expectedOutputTokens` | Assumed output tokens for the pre-run estimate | `800` |
 | `octogon.retrieval.topK` | Snippets pulled by lightweight retrieval | `5` |
 | `octogon.judgeModelId` | Default LLM-as-judge model | unset |
 | `octogon.verifyCommand` | Build/test command for automated verification | unset |
+| `octogon.agent.enabled` | Turn on experimental Agent Mode | `false` |
+| `octogon.agent.maxIterations` | Tool-call cap per agent (`0` = unlimited) | `0` |
+| `octogon.agent.timeoutMs` | Wall-clock budget per agent (`0` = no limit) | `0` |
+| `octogon.agent.maxTokens` | Token budget per agent (`0` = unlimited) | `0` |
+| `octogon.agent.commandTimeoutMs` | Per-command timeout in the agent sandbox | `600000` |
 
 ---
 
-## Getting started (development)
+## Under the hood
 
-The extension lives at the **repo root**.
+Built on the stack this repo already speaks — TypeScript everywhere, React for the UI.
 
-```bash
-npm install
-npm run build        # builds the extension (esbuild) + webview (Vite)
-# Press F5 in VS Code to launch the Extension Development Host
-```
-
-Useful scripts:
-
-| Script | Purpose |
+| Layer | Choice |
 | --- | --- |
-| `npm run build` | Build extension + webview into `dist/` and `media/` |
-| `npm run watch:extension` | Rebuild the extension on change |
-| `npm run compile` | Type-check both projects (no emit) |
-| `npm test` | Run the Vitest unit suite (LM mocked) |
-| `npm run package` | Produce a `.vsix` |
+| Extension host | TypeScript, VS Code Extension API (`vscode.lm`, workspace, commands, webview) |
+| Webview UI | React 18 + Vite + Tailwind CSS + TypeScript |
+| Bundling | esbuild (extension), Vite (webview) |
+| Storage | JSON in extension global storage |
+| Testing | Vitest (unit) + `@vscode/test-electron` (integration); the LM is **mocked** in tests |
 
-Then run **"Octogon: Open"** from the Command Palette. The first run triggers the Copilot consent dialog.
+<details>
+<summary>Project structure</summary>
 
-### Try it on OctoCAT Supply
-
-See [docs/demo.md](docs/demo.md) for a full walkthrough.
-
-```bash
-git clone https://github.com/Azure-Samples/octocat-supply
+```text
+octogon/
+├─ package.json                 # manifest: commands, configuration, deps
+├─ esbuild.js                   # extension bundler
+├─ src/
+│  ├─ extension.ts              # activate(); registers octogon.open
+│  ├─ models/registry.ts        # enumerate copilot-vendor models
+│  ├─ context/                  # active file + selection + attached + retrieval
+│  ├─ runner/orchestrator.ts    # parallel sendRequest + streaming + metrics
+│  ├─ agent/                    # experimental agent loop, tools, sandbox
+│  ├─ cost/                     # token cost math (USD + AI credits) + pricing data
+│  ├─ scoring/                  # manual, LLM-as-judge, verify
+│  ├─ store/                    # local history + exporter + model stats
+│  ├─ webview/panel.ts          # ComparePanel + typed message protocol
+│  └─ shared/types.ts           # shared result/message types
+├─ webview/                     # React + Vite app
+├─ media/                       # built webview assets
+└─ test/                        # Vitest unit suites (LM mocked)
 ```
 
-Open that folder, run the command, attach a couple of files (or rely on retrieval), enter a task (e.g., *"Add a discount field to the Product model and update related components"*), pick 2-3 models, and compare.
+</details>
 
 ---
 
-## Testing & verification
+## The name
 
-- **Unit tests** (mocked LM): cost math, token budgeting, retrieval ranking, message protocol.
-- **Integration** (`@vscode/test-electron`): command registration, panel lifecycle — **no real LM calls** (rate-limited per VS Code guidance).
-- **Manual**: consent flow, empty-model handling, `LanguageModelError`/rate-limit handling, run on a second repo, export.
-
----
-
-## Decisions & assumptions
-
-- VS Code extension + React/Vite/Tailwind webview; Copilot-vendor models only for the core path (no external keys).
-- Cost is token-based (USD + AI credits); the pricing table is bundled, user-overridable, and dated.
-- No system messages in `vscode.lm` → instructions fold into the first User message.
-- Local only in v1; no cloud deployment.
-- Assumes an active GitHub Copilot subscription with model-picker access.
-
----
-
-## Open considerations
-
-1. **History storage** — JSON-lines + index (zero native deps) vs SQLite (richer queries). *JSON recommended for v1.*
-2. **Token/credit burn** — N models × tokens + judge adds up fast. *Mandatory cost preview + optional per-session budget guard.*
-3. **Pricing freshness** — bundle a dated snapshot + "last updated" banner + easy override rather than live fetching.
-
----
-
-## Naming
-
-Name: **Octogon** — a play on GitHub's *octo-* branding (Octocat, Octoverse, Octokit) and the *octagon* competition ring where models go head-to-head. (Stylized with an **o**; the dictionary spelling is "octagon.")
-
-> Avoid putting **"Copilot"** in the published extension name/ID — VS Code Marketplace and GitHub trademark guidance discourage names that imply official affiliation. It's fine to say *"compares your GitHub Copilot models"* in the description; keep it out of the title.
+**Octogon** — a play on GitHub's *octo-* branding (Octocat, Octoverse, Octokit) and the *octagon* competition ring where models go head-to-head. Stylized with an **o**; the dictionary spelling is "octagon."
 
 ---
 
 ## Disclaimers
 
-- Token cost figures use Copilot's usage-based rates (AI credits, 1 = $0.01) but are **estimates** — actual billing depends on exact token counts and your plan.
-- Running comparisons consumes real tokens/credits against your Copilot AI-credit allowance.
+- Cost figures use Copilot's usage-based rates (AI credits, 1 = $0.01) but are **estimates** — actual billing depends on exact token counts and your plan.
+- Running comparisons — and especially the LLM judge, verification, and Agent Mode — consumes real tokens/credits against your Copilot allowance.
 - Model availability depends on your Copilot plan and what's in your picker.
+
+---
+
+<div align="center">
+
+**Models enter the ring. You leave with the data.**
+
+</div>

@@ -430,6 +430,16 @@ export function App() {
 
   const hasResults = order.length > 0;
 
+  // Warn when the chosen judge also competed in this run (self-preference bias).
+  // Only applies to an explicit pick that produced a judgeable answer; "Auto"
+  // (empty judgeModelId) is kept unbiased server-side by pickJudgeModel.
+  const judgeConflictName = (() => {
+    if (!judgeModelId) return null;
+    const result = columns[judgeModelId]?.result;
+    if (!result || result.error || result.output.trim().length === 0) return null;
+    return models.find((m) => m.id === judgeModelId)?.name ?? judgeModelId;
+  })();
+
   const titleFor = useMemo(
     () => (id: string) => {
       if (loadedRun) {
@@ -638,6 +648,17 @@ export function App() {
           >
             {showReference ? 'Hide reference' : 'Add reference answer'}
           </button>
+        </div>
+      )}
+
+      {judgeConflictName && hasResults && !loadedRun && runMode === 'ask' && (
+        <div className="flex items-start gap-2 rounded border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-xs">
+          <span aria-hidden="true">⚠</span>
+          <span>
+            <strong>{judgeConflictName}</strong> also competed in this run. Models tend to rate their
+            own answers higher — for an unbiased score, pick a judge that wasn&apos;t in the ring.
+            You can still run it anyway.
+          </span>
         </div>
       )}
 

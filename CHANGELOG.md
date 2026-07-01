@@ -2,6 +2,70 @@
 
 All notable changes to **Octogon** are documented here.
 
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
+project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.3.0] — 2026-07-01
+
+### Added
+- **Self-preference guard for the LLM judge.** When the model chosen to judge a run also competed
+  in it, the Ask row now shows a non-blocking warning (naming the model) — models tend to rate
+  their own answers higher. You can still proceed.
+
+### Changed
+- **Auto judge selection now avoids competitors.** "Auto (strongest)" — and a configured
+  `octogon.judgeModelId` — prefers a strong evaluator that did *not* compete in the run, falling
+  back to a competitor only when no other model is available. An explicit dropdown choice is still
+  always honored.
+
+## [0.2.0] — 2026-06-30
+
+### Added
+- **Agent Mode — experimental bake-off** *(opt-in, off by default)*. With `octogon.agent.enabled`,
+  each selected model runs as an autonomous, tool-using coding agent inside an **isolated sandbox**
+  copy of the repo. Agents read files, write changes, and run build/test commands on their own,
+  narrating each step, and are ranked side by side.
+  - Self-driven `vscode.lm` tool-calling loop with per-agent iteration, wall-clock, and token caps
+    (`src/agent/loop.ts`).
+  - Sandbox with path confinement and a consent gate on every shell command
+    (`src/agent/sandbox.ts`, `src/agent/tools.ts`).
+  - Agent ranking across cost, speed, and completion (`src/agent/agentRanking.ts`), with unit tests.
+  - New webview surface — a mode toggle, per-agent columns with live step narration, and an agent
+    grid (`ModeToggle`, `AgentColumn`, `AgentGrid`).
+- **Agent settings** — `octogon.agent.enabled`, `octogon.agent.maxIterations`,
+  `octogon.agent.timeoutMs`, `octogon.agent.maxTokens`, and `octogon.agent.commandTimeoutMs`.
+
+### Changed
+- Prepared the repository for public release — a marketing-focused README rewrite, community
+  health files (contributing guide, code of conduct, security policy, and issue/PR templates), and
+  `homepage`/`bugs` metadata in `package.json`.
+- Sandboxed verification (`src/scoring/verify.ts`) now shares the agent sandbox primitives.
+
+### Removed
+- Internal `plan/` phase documents, superseded by the shipped implementation.
+
+## [0.1.0] — 2026-06-29
+
+### Added
+- **Best-value leaderboard** and **per-model performance dashboard** — throughput (tokens/sec)
+  badges, cheapest / fastest / best-value ranking, and per-model stats persisted across runs
+  (`src/shared/leaderboard.ts`, `src/shared/metrics.ts`, `src/store/modelStats.ts`, `ModelStatsPanel`).
+- **Markdown-rendered responses** in each result column.
+- **Ask action row** — judge and verify controls consolidated into one row with a judge-model
+  dropdown (replacing the separate judge/verify bars).
+- **Provider-grouped, price-sorted model picker** with inline token rates.
+- **Activity Bar presence** — Octogon icon and brand mark (`assets/octogon-icon.svg`, `OctogonMark`).
+- **Collapsible sections** with full-height, independently scrolling result columns, the leaderboard
+  moved above the answers, and descriptive badge tooltips.
+- **CI & release** — GitHub Actions CI that packages a `.vsix` artifact and a manual release
+  workflow; action runners upgraded to the Node 24 runtime (built on Node 22 LTS).
+
+### Changed
+- Context builder tracks the last active editor so active-file context survives focus changes.
+
+### Fixed
+- De-duplicate models returned by the picker; add `gpt-4o` pricing.
+
 ## [0.0.1] — 2026-06-25
 
 Initial implementation across phases 0–7.

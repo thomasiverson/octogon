@@ -5,8 +5,8 @@ A repeatable walkthrough that compares models on **cost** and **accuracy** again
 ## 1. Set up
 
 ```bash
-# In a separate folder, clone the demo repo
-git clone https://github.com/Azure-Samples/octocat-supply
+# In a separate folder, clone the demo repo (OctoCAT Supply)
+git clone https://github.com/microsoft/GitHubCopilot_Customized octocat-supply
 ```
 
 Build and launch Octogon from this repository:

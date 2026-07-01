@@ -58,6 +58,16 @@ export function ContextPanel({
           </span>
         </label>
 
+        <button
+          className="rounded px-2 py-0.5 text-vscode-link hover:bg-vscode-list-hover disabled:opacity-50"
+          onClick={onAttach}
+          disabled={disabled}
+        >
+          Attach files…
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
         <label className="flex items-center gap-1.5">
           <input
             type="checkbox"
@@ -80,15 +90,15 @@ export function ContextPanel({
             className="w-14 rounded border border-vscode-input-border bg-vscode-input-bg px-1.5 py-0.5 text-vscode-input-fg"
           />
         </label>
-
-        <button
-          className="rounded px-2 py-0.5 text-vscode-link hover:bg-vscode-list-hover disabled:opacity-50"
-          onClick={onAttach}
-          disabled={disabled}
-        >
-          Attach files…
-        </button>
       </div>
+
+      <p className="text-[11px] leading-snug text-vscode-desc">
+        <strong className="font-medium text-vscode-fg">Retrieval</strong> auto-includes the most
+        relevant files from your repo (keyword search) so the models get context without you
+        attaching anything.{' '}
+        <strong className="font-medium text-vscode-fg">top-K</strong> is how many snippets to pull
+        in — a higher number means more context and more tokens.
+      </p>
 
       {attachedFiles.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
