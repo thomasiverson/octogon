@@ -1,4 +1,4 @@
-# Octogon
+# <img src="assets/octogon-mark.svg" alt="" height="30" align="middle"> Octogon
 
 > **Stop guessing which Copilot model to use. Put them in the ring.**
 
@@ -14,6 +14,12 @@ Write one prompt, pick your models, and watch them answer in parallel — then c
 > [!TIP]
 > **Just want to use it — no source code required?**
 > [**Download the latest `.vsix` from Releases**](https://github.com/thomasiverson/octogon/releases/latest) and install it in VS Code via **Extensions → Install from VSIX…**. No cloning, no compiling, nothing else to set up. Full steps in [Install](#install-recommended).
+
+<p align="center">
+  <img src="assets/octogon.jpg" alt="Octogon comparing four GitHub Copilot models side by side on cost, speed, and quality, with a cheapest / fastest / best-value leaderboard" width="900">
+</p>
+
+<p align="center"><em>One prompt → four models, scored live on cost, speed, and quality — with a cheapest · fastest · best leaderboard.</em></p>
 
 ---
 
