@@ -1,4 +1,4 @@
-<h1><img src="assets/octogon-mark.svg" alt="" height="32" align="middle"> Octogon</h1>
+<h1><img src="assets/octogon-mark.svg" alt="" height="38" align="middle"> Octogon</h1>
 
 > **Stop guessing which Copilot model to use. Put them in the ring.**
 
@@ -190,7 +190,7 @@ Point Octogon at a real repo in minutes. Full walkthrough in [docs/demo.md](docs
 
 ```bash
 # OctoCAT Supply — the GitHub Copilot hands-on demo repo
-git clone https://github.com/microsoft/GitHubCopilot_Customized octocat-supply
+git clone https://github.com/microsoft/GitHubCopilot_Customized
 ```
 
 Open that folder, run the command, attach a couple of files (or lean on retrieval), and enter a task — for example, *"Add a discount field to the Product model and update related components"* — then pick 2–3 models and let them go.
