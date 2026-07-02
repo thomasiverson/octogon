@@ -1,4 +1,4 @@
-# <img src="assets/octogon-mark.svg" alt="" height="30" align="middle"> Octogon
+<h1><img src="assets/octogon-mark.svg" alt="" height="32" align="middle"> Octogon</h1>
 
 > **Stop guessing which Copilot model to use. Put them in the ring.**
 
