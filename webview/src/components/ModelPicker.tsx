@@ -8,7 +8,7 @@ interface ModelPickerProps {
   disabled: boolean;
 }
 
-const GROUP_ORDER = ['OpenAI', 'Anthropic', 'Google', 'Microsoft', 'GitHub', 'Other'];
+const GROUP_ORDER = ['OpenAI', 'Anthropic', 'Google', 'Microsoft', 'GitHub', 'Moonshot', 'Other'];
 
 /** Bucket a model under a provider, preferring the pricing table's provider. */
 function providerGroup(model: ModelInfo): string {
@@ -20,6 +20,7 @@ function providerGroup(model: ModelInfo): string {
   if (p.includes('google')) return 'Google';
   if (p.includes('microsoft')) return 'Microsoft';
   if (p.includes('github')) return 'GitHub';
+  if (p.includes('moonshot')) return 'Moonshot';
 
   const s = `${model.family} ${model.name}`.toLowerCase();
   if (s.includes('claude')) return 'Anthropic';
@@ -27,6 +28,7 @@ function providerGroup(model: ModelInfo): string {
   if (/gpt|codex|davinci|\bo[1-9]\b/.test(s)) return 'OpenAI';
   if (s.includes('mai') || s.includes('phi')) return 'Microsoft';
   if (s.includes('raptor')) return 'GitHub';
+  if (s.includes('kimi')) return 'Moonshot';
   return 'Other';
 }
 
