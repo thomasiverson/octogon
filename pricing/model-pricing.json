@@ -1,6 +1,6 @@
 {
   "source": "GitHub Copilot — Models and pricing (https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)",
-  "lastUpdated": "2026-06-29",
+  "lastUpdated": "2026-07-12",
   "billingModel": "usage-based (effective 2026-06-01)",
   "currency": "USD",
   "unit": "per_1m_tokens",
@@ -12,7 +12,8 @@
     "Models with a 'longContext' tier charge higher rates above an input-token threshold.",
     "Each plan includes an AI-credit allowance; overage is billed at these per-token rates.",
     "Prices change frequently — re-verify against the source URL before relying on them.",
-    "Keys are canonical model ids; map vscode.lm model id/family to these keys in the cost calculator."
+    "Keys are canonical model ids; map vscode.lm model id/family to these keys in the cost calculator.",
+    "Claude Sonnet 5 launch pricing (input 2.00 / cachedInput 0.20 / cacheWrite 2.50 / output 10.00) is promotional through 2026-08-31."
   ],
   "models": {
     "gpt-4o":          { "provider": "OpenAI",    "input": 2.50, "cachedInput": 1.25,  "output": 10.00 },
@@ -25,15 +26,23 @@
     "gpt-5.4-nano":    { "provider": "OpenAI",    "input": 0.20, "cachedInput": 0.02,  "output": 1.25 },
     "gpt-5.5":         { "provider": "OpenAI",    "input": 5.00, "cachedInput": 0.50,  "output": 30.00,
       "longContext": { "thresholdInputTokens": 272000, "input": 10.00, "cachedInput": 1.00, "output": 45.00 } },
+    "gpt-5.6-luna":    { "provider": "OpenAI",    "input": 1.00, "cachedInput": 0.10,  "output": 6.00,
+      "longContext": { "thresholdInputTokens": 200000, "input": 2.00, "cachedInput": 0.20, "output": 9.00 } },
+    "gpt-5.6-sol":     { "provider": "OpenAI",    "input": 5.00, "cachedInput": 0.50,  "output": 30.00,
+      "longContext": { "thresholdInputTokens": 272000, "input": 10.00, "cachedInput": 1.00, "output": 45.00 } },
+    "gpt-5.6-terra":   { "provider": "OpenAI",    "input": 2.50, "cachedInput": 0.25,  "output": 15.00,
+      "longContext": { "thresholdInputTokens": 272000, "input": 5.00, "cachedInput": 0.50, "output": 22.50 } },
 
     "claude-haiku-4.5":  { "provider": "Anthropic", "input": 1.00,  "cachedInput": 0.10, "cacheWrite": 1.25,  "output": 5.00 },
     "claude-sonnet-4":   { "provider": "Anthropic", "input": 3.00,  "cachedInput": 0.30, "cacheWrite": 3.75,  "output": 15.00 },
     "claude-sonnet-4.5": { "provider": "Anthropic", "input": 3.00,  "cachedInput": 0.30, "cacheWrite": 3.75,  "output": 15.00 },
     "claude-sonnet-4.6": { "provider": "Anthropic", "input": 3.00,  "cachedInput": 0.30, "cacheWrite": 3.75,  "output": 15.00 },
+    "claude-sonnet-5":   { "provider": "Anthropic", "input": 2.00,  "cachedInput": 0.20, "cacheWrite": 2.50,  "output": 10.00 },
     "claude-opus-4.5":   { "provider": "Anthropic", "input": 5.00,  "cachedInput": 0.50, "cacheWrite": 6.25,  "output": 25.00 },
     "claude-opus-4.6":   { "provider": "Anthropic", "input": 5.00,  "cachedInput": 0.50, "cacheWrite": 6.25,  "output": 25.00 },
     "claude-opus-4.7":   { "provider": "Anthropic", "input": 5.00,  "cachedInput": 0.50, "cacheWrite": 6.25,  "output": 25.00 },
     "claude-opus-4.8":   { "provider": "Anthropic", "input": 5.00,  "cachedInput": 0.50, "cacheWrite": 6.25,  "output": 25.00 },
+    "claude-opus-4.8-fast": { "provider": "Anthropic", "input": 10.00, "cachedInput": 1.00, "cacheWrite": 12.50, "output": 50.00 },
     "claude-fable-5":    { "provider": "Anthropic", "input": 10.00, "cachedInput": 1.00, "cacheWrite": 12.50, "output": 50.00 },
 
     "gemini-2.5-pro":   { "provider": "Google", "input": 1.25, "cachedInput": 0.125, "output": 10.00 },
@@ -43,6 +52,7 @@
     "gemini-3.5-flash": { "provider": "Google", "input": 1.50, "cachedInput": 0.15,  "output": 9.00 },
 
     "raptor-mini":      { "provider": "GitHub (fine-tuned)", "input": 0.25, "cachedInput": 0.025, "output": 2.00 },
-    "mai-code-1-flash": { "provider": "Microsoft",           "input": 0.75, "cachedInput": 0.075, "output": 4.50 }
+    "mai-code-1-flash": { "provider": "Microsoft",           "input": 0.75, "cachedInput": 0.075, "output": 4.50 },
+    "kimi-k2.7-code":   { "provider": "Moonshot AI",         "input": 0.95, "cachedInput": 0.19,  "output": 4.00 }
   }
 }
