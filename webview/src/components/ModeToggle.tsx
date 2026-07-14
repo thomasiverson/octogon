@@ -43,7 +43,7 @@ export function ModeToggle({ mode, onChange, agentEnabled, disabled, onEnableReq
         }`}
         onClick={() => onChange('blind')}
         disabled={disabled}
-        title="Blind test — the extension picks models at random and hides their names until you pick the best answer"
+        title="Blind test — random or hand-picked models compete with their names hidden until you pick the best answer"
       >
         Blind
       </button>

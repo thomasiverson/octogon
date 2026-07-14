@@ -69,6 +69,47 @@ describe('ModelRegistry.pickRandom', () => {
 });
 
 // ---------------------------------------------------------------------------
+// ModelRegistry.pickFrom — the user's hand-picked blind contestants
+// ---------------------------------------------------------------------------
+describe('ModelRegistry.pickFrom', () => {
+  beforeEach(() => {
+    (lm.selectChatModels as unknown as { mockReset: () => void }).mockReset();
+  });
+
+  it('returns only the requested models, refreshing an empty cache', async () => {
+    (lm.selectChatModels as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue([
+      fakeModel('1', 'Alpha'),
+      fakeModel('2', 'Beta'),
+      fakeModel('3', 'Gamma')
+    ]);
+    const picked = await new ModelRegistry().pickFrom(['1', '3'], () => 0);
+    expect(new Set(picked.map((m) => m.id))).toEqual(new Set(['1', '3']));
+  });
+
+  it('drops ids that are no longer available', async () => {
+    (lm.selectChatModels as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue([
+      fakeModel('1', 'Alpha'),
+      fakeModel('2', 'Beta')
+    ]);
+    const picked = await new ModelRegistry().pickFrom(['1', '2', 'gone']);
+    expect(picked.map((m) => m.id).sort()).toEqual(['1', '2']);
+  });
+
+  it('shuffles the picked models so pick order does not leak', async () => {
+    const models = ['Alpha', 'Beta', 'Gamma', 'Delta'].map((n, i) => fakeModel(String(i), n));
+    (lm.selectChatModels as unknown as { mockResolvedValue: (v: unknown) => void }).mockResolvedValue(models);
+    const ids = ['0', '1', '2', '3'];
+    // A non-trivial rng sequence produces a different order than the input.
+    const seq = [0.99, 0.01, 0.75, 0.2];
+    let i = 0;
+    const picked = await new ModelRegistry().pickFrom(ids, () => seq[i++ % seq.length]);
+    expect(picked).toHaveLength(4);
+    expect(new Set(picked.map((m) => m.id))).toEqual(new Set(ids));
+    expect(picked.map((m) => m.id)).not.toEqual(ids);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Blind flag persists into the history index summary
 // ---------------------------------------------------------------------------
 const baseRecord: RunRecord = {

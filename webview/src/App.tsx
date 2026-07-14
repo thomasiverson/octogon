@@ -91,6 +91,9 @@ export function App() {
   const [mode, setMode] = useState<'ask' | 'agent' | 'blind'>('ask');
   const [runMode, setRunMode] = useState<'ask' | 'agent' | 'blind'>('ask');
   const [revealed, setRevealed] = useState(false);
+  // Blind mode: false = Octogon auto-picks random models; true = the user picks
+  // the contestants (still anonymized until reveal).
+  const [blindManual, setBlindManual] = useState(false);
   const [agentLeaderboard, setAgentLeaderboard] = useState<AgentLeaderboard | undefined>();
   const [agentCleanedUp, setAgentCleanedUp] = useState(false);
   const runIdRef = useRef<string | null>(null);
@@ -348,9 +351,12 @@ export function App() {
   const startRun = () => {
     if (!prompt.trim()) return;
     if (mode === 'blind') {
-      // The extension picks the models; send no ids and skip the cost preview.
+      // Auto: send no ids and let the extension pick at random. Manual: send the
+      // chosen ids — the extension shuffles them and keeps names hidden. Either
+      // way the cost preview is skipped (identities stay anonymous).
       setPreview(null);
-      post({ type: 'run', prompt, modelIds: [], options: buildOptions() });
+      const ids = blindManual ? selectedIds() : [];
+      post({ type: 'run', prompt, modelIds: ids, options: buildOptions() });
       return;
     }
     const ids = selectedIds();
@@ -489,7 +495,9 @@ export function App() {
     [models, loadedRun]
   );
 
-  const canRun = prompt.trim().length > 0 && (mode === 'blind' || selected.size > 0);
+  const canRun =
+    prompt.trim().length > 0 &&
+    (mode === 'blind' ? (blindManual ? selected.size >= 2 : true) : selected.size > 0);
 
   const selectedModelNames = models.filter((m) => selected.has(m.id)).map((m) => m.name);
   const modelsSummary =
@@ -621,7 +629,9 @@ export function App() {
         )}
         {mode === 'blind' && (
           <span className="text-[11px] text-vscode-desc">
-            {config?.blindModelCount ?? 3} random models · names hidden until you pick the best
+            {blindManual
+              ? 'You pick the models · names hidden until you pick the best'
+              : `${config?.blindModelCount ?? 3} random models · names hidden until you pick the best`}
           </span>
         )}
       </div>
@@ -742,9 +752,61 @@ export function App() {
       )}
 
           {mode === 'blind' ? (
-            <div className="rounded border border-vscode-border bg-vscode-panel-bg px-3 py-2 text-xs text-vscode-desc">
-              {config?.blindModelCount ?? 3} models are chosen at random and kept anonymous until you
-              pick the best answer (or reveal).
+            <div className="flex flex-col gap-2 rounded border border-vscode-border bg-vscode-panel-bg px-3 py-2 text-xs text-vscode-desc">
+              <div className="flex items-center gap-2">
+                <span>Contestants</span>
+                <div className="inline-flex overflow-hidden rounded border border-vscode-border">
+                  <button
+                    className={`px-2 py-0.5 transition-colors ${
+                      !blindManual ? 'bg-vscode-btn-bg text-vscode-btn-fg' : 'hover:text-vscode-fg'
+                    }`}
+                    onClick={() => setBlindManual(false)}
+                    disabled={running}
+                    title="Octogon picks the models at random"
+                  >
+                    Auto (random)
+                  </button>
+                  <button
+                    className={`px-2 py-0.5 transition-colors ${
+                      blindManual ? 'bg-vscode-btn-bg text-vscode-btn-fg' : 'hover:text-vscode-fg'
+                    }`}
+                    onClick={() => setBlindManual(true)}
+                    disabled={running}
+                    title="Pick the models yourself — their names stay hidden while you judge"
+                  >
+                    Pick models
+                  </button>
+                </div>
+                {blindManual && (
+                  <button
+                    className="ml-auto rounded px-2 py-0.5 text-vscode-link hover:bg-vscode-list-hover disabled:opacity-50"
+                    onClick={() => post({ type: 'requestModels' })}
+                    disabled={running}
+                  >
+                    Refresh
+                  </button>
+                )}
+              </div>
+              {blindManual ? (
+                <>
+                  <ModelPicker
+                    models={models}
+                    selected={selected}
+                    onToggle={toggleModel}
+                    disabled={running}
+                  />
+                  <span className="text-[11px]">
+                    {selected.size < 2
+                      ? 'Pick at least 2 models — names stay hidden until you pick the best (or reveal).'
+                      : `${selected.size} models · shuffled and kept anonymous until you pick the best (or reveal).`}
+                  </span>
+                </>
+              ) : (
+                <span>
+                  {config?.blindModelCount ?? 3} models are chosen at random and kept anonymous
+                  until you pick the best answer (or reveal).
+                </span>
+              )}
             </div>
           ) : (
             <CollapsibleSection
