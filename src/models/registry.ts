@@ -80,7 +80,9 @@ export class ModelRegistry {
     }
     // Fisher–Yates shuffle, then take the first n.
     for (let i = unique.length - 1; i > 0; i--) {
-      const j = Math.floor(rng() * (i + 1));
+      const r = rng();
+      const u = Number.isFinite(r) ? r - Math.floor(r) : 0; // normalize to [0,1)
+      const j = Math.floor(u * (i + 1));
       [unique[i], unique[j]] = [unique[j], unique[i]];
     }
     return unique.slice(0, Math.max(0, n));
