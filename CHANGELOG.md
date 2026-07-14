@@ -5,6 +5,14 @@ All notable changes to **Octogon** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] — 2026-07-14
+
+### Added
+- **Pick your own blind contestants** — a **Contestants** toggle in Blind mode lets you switch from
+  **Auto (random)** to **Pick models** and hand-pick which models compete (at least 2). Your
+  choices are shuffled server-side and stay anonymized as **Model A / B / C** until you pick the
+  best answer (or reveal), so the judging is still bias-free.
+
 ## [0.5.0] — 2026-07-14
 
 ### Added
@@ -14,9 +22,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   or hit **Reveal** — to unveil identities, metrics, and the leaderboard. Winner picks and star
   ratings feed history and model stats **bias-free**; the history list tags blind runs, and the
   LLM judge / verification unlock after the reveal.
-  - **Pick your own contestants** — a **Contestants** toggle in Blind mode lets you switch from
-    **Auto (random)** to **Pick models** and hand-pick which models compete. Your choices are
-    shuffled and stay anonymous until the reveal, so the judging is still bias-free.
 
 ## [0.4.0] — 2026-07-01
 
