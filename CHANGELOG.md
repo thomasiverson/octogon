@@ -5,6 +5,16 @@ All notable changes to **Octogon** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Blind test mode** — a new **Blind** mode beside Ask/Agent. Octogon picks N random models
+  (`octogon.blind.modelCount`, clamped 2–4, default 3) and streams them as anonymized
+  **Model A / B / C** with names, cost, latency, and the leaderboard hidden. Pick the best answer —
+  or hit **Reveal** — to unveil identities, metrics, and the leaderboard. Winner picks and star
+  ratings feed history and model stats **bias-free**; the history list tags blind runs, and the
+  LLM judge / verification unlock after the reveal.
+
 ## [0.4.0] — 2026-07-01
 
 ### Added

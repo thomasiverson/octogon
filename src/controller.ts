@@ -54,6 +54,8 @@ interface RunState {
   modelNames: Record<string, string>;
   results: Map<string, ModelResult>;
   winner: string | null;
+  /** True when the run is an anonymized blind test. */
+  blind: boolean;
 }
 
 /** In-memory state for the current agent bake-off, retained so a winning
@@ -287,6 +289,23 @@ export class OctogonController {
       await this.panel.post({ type: 'notice', level: 'warn', message: 'Enter a prompt first.' });
       return;
     }
+
+    const blind = options.mode === 'blind';
+    if (blind) {
+      // The extension — not the user — picks the models for a blind test, so
+      // there is no selection bias. pickRandom returns them already shuffled.
+      const picked = await this.registry.pickRandom(this.blindModelCount());
+      if (picked.length < 2) {
+        await this.panel.post({
+          type: 'notice',
+          level: 'warn',
+          message: 'Need at least 2 available models for a blind test.'
+        });
+        return;
+      }
+      modelIds = picked.map((m) => m.id);
+    }
+
     if (modelIds.length === 0) {
       await this.panel.post({ type: 'notice', level: 'warn', message: 'Select at least one model.' });
       return;
@@ -317,7 +336,12 @@ export class OctogonController {
     );
     const table = await this.getPricing();
 
-    await this.panel.post({ type: 'runStarted', runId, modelIds: models.map((m) => m.id) });
+    await this.panel.post({
+      type: 'runStarted',
+      runId,
+      modelIds: models.map((m) => m.id),
+      mode: blind ? 'blind' : 'ask'
+    });
 
     // Build token-budgeted context and disclose exactly what was sent.
     const context = await this.buildContext(prompt, models, options, cts.token);
@@ -331,7 +355,8 @@ export class OctogonController {
       modelIds: models.map((m) => m.id),
       modelNames: Object.fromEntries(models.map((m) => [m.id, m.name])),
       results: new Map<string, ModelResult>(),
-      winner: null
+      winner: null,
+      blind
     };
 
     const handlers: RunHandlers = {
@@ -935,7 +960,8 @@ export class OctogonController {
       modelIds: run.modelIds,
       modelNames: run.modelNames,
       results,
-      winner: run.winner
+      winner: run.winner,
+      blind: run.blind
     };
   }
 
@@ -1307,8 +1333,16 @@ export class OctogonController {
       verifyCommand: cfg.get<string>('verifyCommand', ''),
       pricingLastUpdated,
       aiCreditUsd,
-      agentEnabled: cfg.get<boolean>('agent.enabled', false)
+      agentEnabled: cfg.get<boolean>('agent.enabled', false),
+      blindModelCount: this.blindModelCount()
     };
+  }
+
+  /** How many models a blind test picks, read from settings and clamped to 2–4. */
+  private blindModelCount(): number {
+    const raw = vscode.workspace.getConfiguration('octogon').get<number>('blind.modelCount', 3);
+    const n = Number.isFinite(raw) ? Math.round(raw) : 3;
+    return Math.max(2, Math.min(4, n));
   }
 
   /** Turn on Agent mode from the UI so users don't have to edit settings by hand. */

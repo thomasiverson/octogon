@@ -104,7 +104,10 @@ export function HistoryPanel({ runs, onReload, onExport, onClear, onClose }: His
                 <div className="truncate" title={run.promptSnippet}>
                   {run.promptSnippet || '(empty prompt)'}
                 </div>
-                <div className="flex flex-wrap gap-x-2 text-[11px] text-vscode-desc">
+                <div className="flex flex-wrap items-center gap-x-2 text-[11px] text-vscode-desc">
+                  {run.blind && (
+                    <span className="rounded bg-vscode-link/20 px-1.5 text-vscode-link">Blind</span>
+                  )}
                   <span>{formatDate(run.timestamp)}</span>
                   <span>· {run.modelNames.join(', ')}</span>
                   {run.totalUsd > 0 && <span>· {formatUsd(run.totalUsd)}</span>}

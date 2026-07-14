@@ -73,6 +73,7 @@ Octogon replaces the guesswork with a head-to-head bout. One prompt goes out to 
 | ⭐ | **Quality scoring** | Manual stars, pick-a-winner, and an opt-in **LLM-as-judge** with rubric + optional reference answer. |
 | 📎 | **Repo-aware context** | Active file, selection, attached files, and lightweight retrieval — token-budgeted and shown transparently per run. |
 | 🤖 | **Agent Mode (experimental)** | Turn each model loose as an autonomous, tool-using coding agent in its own sandbox. |
+| 🎭 | **Blind Mode** | Judge N anonymized answers side by side, then reveal which model was which — bias-free winner picks that feed your stats. |
 | 💾 | **Local history & export** | Save, reload, compare, and export every bout. Nothing leaves your machine. |
 
 ---
@@ -207,6 +208,7 @@ Open that folder, run the command, attach a couple of files (or lean on retrieva
 | `octogon.retrieval.topK` | Snippets pulled by lightweight retrieval | `5` |
 | `octogon.judgeModelId` | Default LLM-as-judge model | unset |
 | `octogon.verifyCommand` | Build/test command for automated verification | unset |
+| `octogon.blind.modelCount` | Models picked at random for a Blind test (clamped 2–4) | `3` |
 | `octogon.agent.enabled` | Turn on experimental Agent Mode | `false` |
 | `octogon.agent.maxIterations` | Tool-call cap per agent (`0` = unlimited) | `0` |
 | `octogon.agent.timeoutMs` | Wall-clock budget per agent (`0` = no limit) | `0` |
