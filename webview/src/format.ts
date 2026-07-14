@@ -45,7 +45,7 @@ export function formatPercent(fraction: number): string {
 
 /** Anonymized column label for blind tests: 0 → "Model A", 1 → "Model B", … */
 export function blindLabel(index: number): string {
-  if (index < 0) return 'Model ?';
+  if (!Number.isFinite(index) || index < 0) return 'Model ?';
   const letter = String.fromCharCode(65 + (index % 26));
   const wrap = index >= 26 ? String(Math.floor(index / 26) + 1) : '';
   return `Model ${letter}${wrap}`;
