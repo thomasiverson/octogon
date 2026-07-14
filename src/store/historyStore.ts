@@ -21,7 +21,8 @@ export function toSummary(record: RunRecord): RunSummary {
     modelNames: record.modelIds.map((id) => record.modelNames[id] ?? id),
     totalUsd,
     totalCredits,
-    winner: record.winner ?? null
+    winner: record.winner ?? null,
+    blind: record.blind ?? false
   };
 }
 

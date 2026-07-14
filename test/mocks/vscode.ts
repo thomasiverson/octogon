@@ -14,6 +14,12 @@ export const window = {
   showInformationMessage: vi.fn(() => Promise.resolve(undefined))
 };
 
+// Language Model API surface used by ModelRegistry. Tests set the resolved
+// value per case; the default returns an empty roster.
+export const lm = {
+  selectChatModels: vi.fn(async (_opts?: unknown): Promise<unknown[]> => [])
+};
+
 export class TreeItem {
   constructor(public label: string = '') {}
 }

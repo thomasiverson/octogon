@@ -15,6 +15,7 @@ import type {
 import { runReducer } from './state';
 import type { Columns } from './state';
 import { computeClientLeaderboard } from './leaderboard';
+import { blindLabel } from './format';
 import { PromptBar } from './components/PromptBar';
 import { ModelPicker } from './components/ModelPicker';
 import { ResultGrid } from './components/ResultGrid';
@@ -87,8 +88,9 @@ export function App() {
   const [referenceAnswer, setReferenceAnswer] = useState('');
   const [showReference, setShowReference] = useState(false);
   const [judgeModelId, setJudgeModelId] = useState('');
-  const [mode, setMode] = useState<'ask' | 'agent'>('ask');
-  const [runMode, setRunMode] = useState<'ask' | 'agent'>('ask');
+  const [mode, setMode] = useState<'ask' | 'agent' | 'blind'>('ask');
+  const [runMode, setRunMode] = useState<'ask' | 'agent' | 'blind'>('ask');
+  const [revealed, setRevealed] = useState(false);
   const [agentLeaderboard, setAgentLeaderboard] = useState<AgentLeaderboard | undefined>();
   const [agentCleanedUp, setAgentCleanedUp] = useState(false);
   const runIdRef = useRef<string | null>(null);
@@ -141,6 +143,7 @@ export function App() {
           setLeaderboard(undefined);
           setContextInfo(null);
           setWinner(null);
+          setRevealed(false);
           setJudging(false);
           setLoadedRun(null);
           verifyPendingRef.current = 0;
@@ -343,8 +346,15 @@ export function App() {
   // Agent runs skip the cost preview (cost depends on the loop) and go straight
   // to the extension's consent modal.
   const startRun = () => {
+    if (!prompt.trim()) return;
+    if (mode === 'blind') {
+      // The extension picks the models; send no ids and skip the cost preview.
+      setPreview(null);
+      post({ type: 'run', prompt, modelIds: [], options: buildOptions() });
+      return;
+    }
     const ids = selectedIds();
-    if (ids.length === 0 || !prompt.trim()) return;
+    if (ids.length === 0) return;
     if (mode === 'agent') {
       setPreview(null);
       post({ type: 'run', prompt, modelIds: ids, options: buildOptions() });
@@ -389,10 +399,13 @@ export function App() {
   const pickWinner = (modelId: string) => {
     const next = winner === modelId ? null : modelId;
     setWinner(next);
+    setRevealed(true);
     if (runIdRef.current) {
       post({ type: 'pickWinner', runId: runIdRef.current, modelId: next });
     }
   };
+
+  const reveal = () => setRevealed(true);
 
   const runJudge = (referenceAnswer: string) => {
     if (!runIdRef.current) return;
@@ -434,9 +447,12 @@ export function App() {
     setRunMode('ask');
     setContextInfo(null);
     setWinner(null);
+    setRevealed(false);
   };
 
   const hasResults = order.length > 0;
+  const blindActive = runMode === 'blind' && !revealed;
+  const askLike = runMode === 'ask' || (runMode === 'blind' && revealed);
 
   // Warn when the chosen judge also competed in this run (self-preference bias).
   // Only applies to an explicit pick that produced a judgeable answer; "Auto"
@@ -450,6 +466,9 @@ export function App() {
 
   const titleFor = useMemo(
     () => (id: string) => {
+      if (runMode === 'blind' && !revealed && !loadedRun) {
+        return { title: blindLabel(order.indexOf(id)), subtitle: undefined };
+      }
       if (loadedRun) {
         return { title: loadedRun.modelNames[id] ?? id, subtitle: undefined };
       }
@@ -459,7 +478,7 @@ export function App() {
         subtitle: m ? `${m.vendor} · ${m.family}` : undefined
       };
     },
-    [models, loadedRun]
+    [models, loadedRun, runMode, revealed, order]
   );
 
   const nameFor = useMemo(
@@ -470,7 +489,7 @@ export function App() {
     [models, loadedRun]
   );
 
-  const canRun = prompt.trim().length > 0 && selected.size > 0;
+  const canRun = prompt.trim().length > 0 && (mode === 'blind' || selected.size > 0);
 
   const selectedModelNames = models.filter((m) => selected.has(m.id)).map((m) => m.name);
   const modelsSummary =
@@ -600,6 +619,11 @@ export function App() {
             Each model works in its own sandbox · apply a winning diff when done
           </span>
         )}
+        {mode === 'blind' && (
+          <span className="text-[11px] text-vscode-desc">
+            {config?.blindModelCount ?? 3} random models · names hidden until you pick the best
+          </span>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -620,11 +644,23 @@ export function App() {
               ? 'Estimating cost…'
               : mode === 'agent'
                 ? 'Run agent bake-off'
-                : 'Run comparison'}
+                : mode === 'blind'
+                  ? 'Run blind test'
+                  : 'Run comparison'}
           </button>
         )}
 
-        {hasResults && !loadedRun && runMode === 'ask' && (
+        {blindActive && hasResults && !running && (
+          <button
+            className="rounded bg-vscode-btn-sec-bg px-3 py-1.5 text-vscode-btn-sec-fg hover:opacity-90"
+            onClick={reveal}
+            title="Reveal which model produced each answer"
+          >
+            Reveal models
+          </button>
+        )}
+
+        {hasResults && !loadedRun && askLike && (
           <button
             className="rounded bg-vscode-btn-sec-bg px-3 py-1.5 text-vscode-btn-sec-fg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={running || verifying}
@@ -649,7 +685,7 @@ export function App() {
         <span className="ml-auto text-[11px] text-vscode-desc">Ctrl/Cmd+Enter to run</span>
       </div>
 
-      {hasResults && !loadedRun && runMode === 'ask' && (
+      {hasResults && !loadedRun && askLike && (
         <div className="flex flex-wrap items-center gap-2">
           <button
             className="rounded bg-vscode-btn-sec-bg px-3 py-1.5 text-vscode-btn-sec-fg hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
@@ -684,7 +720,7 @@ export function App() {
         </div>
       )}
 
-      {judgeConflictName && hasResults && !loadedRun && runMode === 'ask' && (
+      {judgeConflictName && hasResults && !loadedRun && askLike && (
         <div className="flex items-start gap-2 rounded border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-xs">
           <span aria-hidden="true">⚠</span>
           <span>
@@ -695,7 +731,7 @@ export function App() {
         </div>
       )}
 
-      {showReference && hasResults && !loadedRun && runMode === 'ask' && (
+      {showReference && hasResults && !loadedRun && askLike && (
         <textarea
           className="min-h-[60px] w-full resize-y rounded border border-vscode-input-border bg-vscode-input-bg p-2 text-xs text-vscode-input-fg outline-none focus:border-vscode-link"
           placeholder="Optional reference answer — when provided, the LLM judge scores responses against it."
@@ -705,23 +741,30 @@ export function App() {
         />
       )}
 
-          <CollapsibleSection
-            title="Models"
-            open={modelsOpen}
-            onToggle={() => setModelsOpen((o) => !o)}
-            summary={modelsSummary}
-            right={
-              <button
-                className="rounded px-2 py-0.5 text-xs text-vscode-link hover:bg-vscode-list-hover disabled:opacity-50"
-                onClick={() => post({ type: 'requestModels' })}
-                disabled={running}
-              >
-                Refresh
-              </button>
-            }
-          >
-            <ModelPicker models={models} selected={selected} onToggle={toggleModel} disabled={running} />
-          </CollapsibleSection>
+          {mode === 'blind' ? (
+            <div className="rounded border border-vscode-border bg-vscode-panel-bg px-3 py-2 text-xs text-vscode-desc">
+              {config?.blindModelCount ?? 3} models are chosen at random and kept anonymous until you
+              pick the best answer (or reveal).
+            </div>
+          ) : (
+            <CollapsibleSection
+              title="Models"
+              open={modelsOpen}
+              onToggle={() => setModelsOpen((o) => !o)}
+              summary={modelsSummary}
+              right={
+                <button
+                  className="rounded px-2 py-0.5 text-xs text-vscode-link hover:bg-vscode-list-hover disabled:opacity-50"
+                  onClick={() => post({ type: 'requestModels' })}
+                  disabled={running}
+                >
+                  Refresh
+                </button>
+              }
+            >
+              <ModelPicker models={models} selected={selected} onToggle={toggleModel} disabled={running} />
+            </CollapsibleSection>
+          )}
 
           <CollapsibleSection
             title="Context"
@@ -759,7 +802,7 @@ export function App() {
 
       {contextInfo && <ContextDisclosure context={contextInfo} />}
 
-      {leaderboard && !running && runMode === 'ask' && (
+      {leaderboard && !running && askLike && (
         <Leaderboard leaderboard={leaderboard} nameFor={nameFor} />
       )}
 
@@ -809,6 +852,7 @@ export function App() {
           leaderboard={leaderboard}
           winner={winner}
           readOnly={Boolean(loadedRun)}
+          blind={blindActive}
           onRate={rate}
           onPickWinner={pickWinner}
         />

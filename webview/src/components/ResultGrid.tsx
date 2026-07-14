@@ -14,6 +14,7 @@ interface ResultGridProps {
   leaderboard?: Leaderboard;
   winner: string | null;
   readOnly?: boolean;
+  blind?: boolean;
   onRate: (modelId: string, rating: number | null) => void;
   onPickWinner: (modelId: string) => void;
 }
@@ -25,6 +26,7 @@ export function ResultGrid({
   leaderboard,
   winner,
   readOnly,
+  blind,
   onRate,
   onPickWinner
 }: ResultGridProps) {
@@ -52,6 +54,7 @@ export function ResultGrid({
             isHighestRated={leaderboard?.highestRated?.modelId === id}
             isWinner={winner === id}
             readOnly={readOnly}
+            blind={blind}
             onRate={(rating) => onRate(id, rating)}
             onPickWinner={() => onPickWinner(id)}
           />

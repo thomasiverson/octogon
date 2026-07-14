@@ -116,6 +116,13 @@
           "default": "",
           "markdownDescription": "Build/test command used for **automated verification** of code tasks (e.g. `npm test`). Default unset (verification disabled). Always shown before running."
         },
+        "octogon.blind.modelCount": {
+          "type": "number",
+          "default": 3,
+          "minimum": 2,
+          "maximum": 4,
+          "markdownDescription": "Number of models the extension picks at random for a **Blind test** — anonymized side-by-side answers you judge before the model names are revealed. Clamped to 2–4."
+        },
         "octogon.agent.enabled": {
           "type": "boolean",
           "default": false,

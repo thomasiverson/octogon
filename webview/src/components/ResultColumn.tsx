@@ -14,6 +14,8 @@ interface ResultColumnProps {
   isHighestRated?: boolean;
   isWinner?: boolean;
   readOnly?: boolean;
+  /** Hide identity-leaking data (name subtitle, metrics, cost, leaderboard icons). */
+  blind?: boolean;
   onRate?: (value: number | null) => void;
   onPickWinner?: () => void;
 }
@@ -34,6 +36,7 @@ export function ResultColumn({
   isHighestRated,
   isWinner,
   readOnly,
+  blind,
   onRate,
   onPickWinner
 }: ResultColumnProps) {
@@ -58,14 +61,17 @@ export function ResultColumn({
           </span>
           <div className="ml-auto flex shrink-0 gap-1">
             {isWinner && <span title="Picked winner">👑</span>}
-            {isFastest && <span title="Fastest">⚡</span>}
-            {isCheapest && <span title="Cheapest">💰</span>}
-            {isHighestRated && <span title="Highest rated">⭐</span>}
+            {!blind && isFastest && <span title="Fastest">⚡</span>}
+            {!blind && isCheapest && <span title="Cheapest">💰</span>}
+            {!blind && isHighestRated && <span title="Highest rated">⭐</span>}
           </div>
         </div>
-        {subtitle && <span className="truncate text-[11px] text-vscode-desc">{subtitle}</span>}
+        {!blind && subtitle && (
+          <span className="truncate text-[11px] text-vscode-desc">{subtitle}</span>
+        )}
 
-        <div className="flex flex-wrap gap-1">
+        {!blind && (
+          <div className="flex flex-wrap gap-1">
           {result && (
             <>
               <Badge
@@ -140,6 +146,7 @@ export function ResultColumn({
             />
           )}
         </div>
+        )}
       </div>
 
       <div className="min-h-[120px] flex-1 p-2.5">
@@ -219,7 +226,7 @@ export function ResultColumn({
                 }`}
                 onClick={() => onPickWinner?.()}
               >
-                {isWinner ? '👑 Winner' : 'Pick winner'}
+                {isWinner ? '👑 Winner' : blind ? 'Pick as best' : 'Pick winner'}
               </button>
             )}
           </div>

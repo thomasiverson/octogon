@@ -58,6 +58,34 @@ export class ModelRegistry {
       .filter((m): m is vscode.LanguageModelChat => Boolean(m));
   }
 
+  /**
+   * Pick up to n distinct random models (deduped by display name) for a blind
+   * test. Refreshes once if the cache is empty. The result is already shuffled,
+   * so callers can use its order directly. rng is injectable for tests.
+   */
+  public async pickRandom(
+    n: number,
+    rng: () => number = Math.random
+  ): Promise<vscode.LanguageModelChat[]> {
+    if (this.cache.size === 0) {
+      await this.refresh();
+    }
+    const seen = new Set<string>();
+    const unique: vscode.LanguageModelChat[] = [];
+    for (const model of this.cache.values()) {
+      const key = (model.name || model.id).toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      unique.push(model);
+    }
+    // Fisher–Yates shuffle, then take the first n.
+    for (let i = unique.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [unique[i], unique[j]] = [unique[j], unique[i]];
+    }
+    return unique.slice(0, Math.max(0, n));
+  }
+
   public get size(): number {
     return this.cache.size;
   }
