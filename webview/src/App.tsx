@@ -88,11 +88,16 @@ export function App() {
   const [referenceAnswer, setReferenceAnswer] = useState('');
   const [showReference, setShowReference] = useState(false);
   const [judgeModelId, setJudgeModelId] = useState('');
-  const [mode, setMode] = useState<'ask' | 'agent' | 'blind'>('ask');
-  const [runMode, setRunMode] = useState<'ask' | 'agent' | 'blind'>('ask');
+  const [mode, setMode] = useState<'ask' | 'agent'>('ask');
+  const [runMode, setRunMode] = useState<'ask' | 'agent'>('ask');
   const [revealed, setRevealed] = useState(false);
-  // Blind mode: false = Octogon auto-picks random models; true = the user picks
-  // the contestants (still anonymized until reveal).
+  // Blind test is orthogonal to Ask/Agent: hide model identities (and metrics)
+  // until the user picks the best answer or reveals. `blind` is the composer
+  // toggle; `runBlind` reflects the run that's in progress or complete.
+  const [blind, setBlind] = useState(false);
+  const [runBlind, setRunBlind] = useState(false);
+  // Blind contestants: false = Octogon auto-picks random models; true = the user
+  // picks the contestants (still anonymized until reveal).
   const [blindManual, setBlindManual] = useState(false);
   const [agentLeaderboard, setAgentLeaderboard] = useState<AgentLeaderboard | undefined>();
   const [agentCleanedUp, setAgentCleanedUp] = useState(false);
@@ -141,6 +146,7 @@ export function App() {
           runIdRef.current = msg.runId;
           setOrder(msg.modelIds);
           setRunMode(msg.mode ?? 'ask');
+          setRunBlind(msg.blind ?? false);
           setAgentLeaderboard(undefined);
           setAgentCleanedUp(false);
           setLeaderboard(undefined);
@@ -262,6 +268,7 @@ export function App() {
           dispatch({ type: 'load', columns: cols });
           setOrder(run.modelIds);
           setRunMode('ask');
+          setRunBlind(false);
           setAgentLeaderboard(undefined);
           setAgentCleanedUp(false);
           setWinner(run.winner ?? null);
@@ -295,7 +302,8 @@ export function App() {
     attachedFiles,
     useRetrieval,
     retrievalTopK: topK,
-    mode
+    mode,
+    blind
   });
 
   const toggleModel = (id: string) => {
@@ -350,10 +358,11 @@ export function App() {
   // to the extension's consent modal.
   const startRun = () => {
     if (!prompt.trim()) return;
-    if (mode === 'blind') {
+    if (blind) {
       // Auto: send no ids and let the extension pick at random. Manual: send the
       // chosen ids — the extension shuffles them and keeps names hidden. Either
-      // way the cost preview is skipped (identities stay anonymous).
+      // way the cost preview is skipped (identities stay anonymous). Works with
+      // both Ask and Agent execution (options.mode).
       setPreview(null);
       const ids = blindManual ? selectedIds() : [];
       post({ type: 'run', prompt, modelIds: ids, options: buildOptions() });
@@ -451,14 +460,15 @@ export function App() {
     setAgentLeaderboard(undefined);
     setAgentCleanedUp(false);
     setRunMode('ask');
+    setRunBlind(false);
     setContextInfo(null);
     setWinner(null);
     setRevealed(false);
   };
 
   const hasResults = order.length > 0;
-  const blindActive = runMode === 'blind' && !revealed;
-  const askLike = runMode === 'ask' || (runMode === 'blind' && revealed);
+  const blindActive = runBlind && !revealed;
+  const askLike = runMode === 'ask' && (!runBlind || revealed);
 
   // Warn when the chosen judge also competed in this run (self-preference bias).
   // Only applies to an explicit pick that produced a judgeable answer; "Auto"
@@ -472,7 +482,7 @@ export function App() {
 
   const titleFor = useMemo(
     () => (id: string) => {
-      if (runMode === 'blind' && !revealed && !loadedRun) {
+      if (runBlind && !revealed && !loadedRun) {
         return { title: blindLabel(order.indexOf(id)), subtitle: undefined };
       }
       if (loadedRun) {
@@ -484,7 +494,7 @@ export function App() {
         subtitle: m ? `${m.vendor} · ${m.family}` : undefined
       };
     },
-    [models, loadedRun, runMode, revealed, order]
+    [models, loadedRun, runBlind, revealed, order]
   );
 
   const nameFor = useMemo(
@@ -497,7 +507,7 @@ export function App() {
 
   const canRun =
     prompt.trim().length > 0 &&
-    (mode === 'blind' ? (blindManual ? selected.size >= 2 : true) : selected.size > 0);
+    (blind ? (blindManual ? selected.size >= 2 : true) : selected.size > 0);
 
   const selectedModelNames = models.filter((m) => selected.has(m.id)).map((m) => m.name);
   const modelsSummary =
@@ -622,16 +632,31 @@ export function App() {
             post({ type: 'enableAgent' });
           }}
         />
-        {mode === 'agent' && (
+        <button
+          className={`rounded border px-3 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+            blind
+              ? 'border-vscode-link bg-vscode-list-active text-vscode-fg'
+              : 'border-vscode-border text-vscode-desc hover:text-vscode-fg'
+          }`}
+          onClick={() => setBlind((b) => !b)}
+          disabled={running}
+          aria-pressed={blind}
+          title="Blind test — hide model names and metrics until you pick the best answer (or reveal). Works with both Ask and Agent."
+        >
+          Blind{blind ? ' on' : ''}
+        </button>
+        {mode === 'agent' && !blind && (
           <span className="text-[11px] text-vscode-desc">
             Each model works in its own sandbox · apply a winning diff when done
           </span>
         )}
-        {mode === 'blind' && (
+        {blind && (
           <span className="text-[11px] text-vscode-desc">
+            {mode === 'agent' ? 'Blind agent bake-off' : 'Blind test'} ·{' '}
             {blindManual
-              ? 'You pick the models · names hidden until you pick the best'
-              : `${config?.blindModelCount ?? 3} random models · names hidden until you pick the best`}
+              ? 'you pick the models'
+              : `${config?.blindModelCount ?? 3} random models`}{' '}
+            · names hidden until you pick the best
           </span>
         )}
       </div>
@@ -652,10 +677,12 @@ export function App() {
           >
             {previewing
               ? 'Estimating cost…'
-              : mode === 'agent'
-                ? 'Run agent bake-off'
-                : mode === 'blind'
-                  ? 'Run blind test'
+              : blind
+                ? mode === 'agent'
+                  ? 'Run blind agent bake-off'
+                  : 'Run blind test'
+                : mode === 'agent'
+                  ? 'Run agent bake-off'
                   : 'Run comparison'}
           </button>
         )}
@@ -751,7 +778,7 @@ export function App() {
         />
       )}
 
-          {mode === 'blind' ? (
+          {blind ? (
             <div className="flex flex-col gap-2 rounded border border-vscode-border bg-vscode-panel-bg px-3 py-2 text-xs text-vscode-desc">
               <div className="flex items-center gap-2">
                 <span>Contestants</span>
@@ -868,7 +895,7 @@ export function App() {
         <Leaderboard leaderboard={leaderboard} nameFor={nameFor} />
       )}
 
-      {runMode === 'agent' && agentLeaderboard?.recommended && !running && (
+      {runMode === 'agent' && agentLeaderboard?.recommended && !running && !blindActive && (
         <div className="flex shrink-0 items-center gap-2 rounded border border-yellow-400/50 bg-yellow-400/10 px-3 py-2 text-xs">
           <span>🏆</span>
           <span>
@@ -902,6 +929,7 @@ export function App() {
           columns={columns}
           titleFor={titleFor}
           board={agentLeaderboard}
+          blind={blindActive}
           readOnly={Boolean(loadedRun) || agentCleanedUp}
           onApply={applyAgent}
           onPreview={previewAgent}

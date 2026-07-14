@@ -105,9 +105,11 @@ export interface RunOptions {
   retrievalTopK?: number;
   /** Optional reference answer for the judge. */
   referenceAnswer?: string;
-  /** 'ask' = response comparison (default); 'agent' = autonomous agent bake-off;
-   *  'blind' = anonymized blind test where the extension picks the models. */
-  mode?: 'ask' | 'agent' | 'blind';
+  /** 'ask' = response comparison (default); 'agent' = autonomous agent bake-off. */
+  mode?: 'ask' | 'agent';
+  /** Anonymized blind test — hide model identities until the user picks the best
+   *  (or reveals). Orthogonal to mode: works with both 'ask' and 'agent'. */
+  blind?: boolean;
 }
 
 export interface CostEstimate {
@@ -282,7 +284,7 @@ export type ExtensionToWebview =
   | { type: 'init'; models: ModelInfo[]; config: OctogonConfig }
   | { type: 'models'; models: ModelInfo[] }
   | { type: 'activeFile'; path: string | null }
-  | { type: 'runStarted'; runId: string; modelIds: string[]; mode?: 'ask' | 'agent' | 'blind' }
+  | { type: 'runStarted'; runId: string; modelIds: string[]; mode?: 'ask' | 'agent'; blind?: boolean }
   | { type: 'context'; runId: string; context: ContextInfo }
   | { type: 'modelStart'; runId: string; modelId: string }
   | { type: 'fragment'; runId: string; modelId: string; text: string }

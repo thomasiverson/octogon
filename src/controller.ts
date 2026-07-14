@@ -290,7 +290,7 @@ export class OctogonController {
       return;
     }
 
-    const blind = options.mode === 'blind';
+    const blind = options.blind === true;
     if (blind) {
       // In a blind test the identities stay hidden while you judge. The user may
       // either let Octogon pick random contestants (no ids sent) or choose them
@@ -320,7 +320,7 @@ export class OctogonController {
     }
 
     if (options.mode === 'agent') {
-      await this.handleAgentRun(prompt, modelIds, options);
+      await this.handleAgentRun(prompt, modelIds, options, blind);
       return;
     }
 
@@ -348,7 +348,8 @@ export class OctogonController {
       type: 'runStarted',
       runId,
       modelIds: models.map((m) => m.id),
-      mode: blind ? 'blind' : 'ask'
+      mode: 'ask',
+      blind
     });
 
     // Build token-budgeted context and disclose exactly what was sent.
@@ -431,7 +432,8 @@ export class OctogonController {
   private async handleAgentRun(
     prompt: string,
     modelIds: string[],
-    options: RunOptions
+    options: RunOptions,
+    blind = false
   ): Promise<void> {
     const cfg = vscode.workspace.getConfiguration('octogon');
     if (!cfg.get<boolean>('agent.enabled', false)) {
@@ -497,7 +499,7 @@ export class OctogonController {
       models.map((m) => [m.id, { id: m.id, family: m.family, name: m.name }])
     );
 
-    await this.panel.post({ type: 'runStarted', runId, modelIds: models.map((m) => m.id), mode: 'agent' });
+    await this.panel.post({ type: 'runStarted', runId, modelIds: models.map((m) => m.id), mode: 'agent', blind });
 
     const context = await this.buildContext(prompt, models, options, cts.token);
     await this.panel.post({ type: 'context', runId, context: context.info });

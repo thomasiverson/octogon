@@ -1,6 +1,6 @@
 interface ModeToggleProps {
-  mode: 'ask' | 'agent' | 'blind';
-  onChange: (mode: 'ask' | 'agent' | 'blind') => void;
+  mode: 'ask' | 'agent';
+  onChange: (mode: 'ask' | 'agent') => void;
   agentEnabled: boolean;
   disabled?: boolean;
   onEnableRequest: () => void;
@@ -36,16 +36,6 @@ export function ModeToggle({ mode, onChange, agentEnabled, disabled, onEnableReq
         }
       >
         Agent{!agentEnabled && ' (off)'}
-      </button>
-      <button
-        className={`${base} ${
-          mode === 'blind' ? 'bg-vscode-btn-bg text-vscode-btn-fg' : 'text-vscode-desc hover:text-vscode-fg'
-        }`}
-        onClick={() => onChange('blind')}
-        disabled={disabled}
-        title="Blind test — random or hand-picked models compete with their names hidden until you pick the best answer"
-      >
-        Blind
       </button>
     </div>
   );

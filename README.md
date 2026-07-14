@@ -73,7 +73,7 @@ Octogon replaces the guesswork with a head-to-head bout. One prompt goes out to 
 | ⭐ | **Quality scoring** | Manual stars, pick-a-winner, and an opt-in **LLM-as-judge** with rubric + optional reference answer. |
 | 📎 | **Repo-aware context** | Active file, selection, attached files, and lightweight retrieval — token-budgeted and shown transparently per run. |
 | 🤖 | **Agent Mode (experimental)** | Turn each model loose as an autonomous, tool-using coding agent in its own sandbox. |
-| 🎭 | **Blind Mode** | Judge N anonymized answers side by side, then reveal which model was which — bias-free winner picks that feed your stats. |
+| 🎭 | **Blind Mode** | Judge N anonymized answers side by side — in **Ask or Agent** mode — then reveal which model was which. Bias-free winner picks that feed your stats. |
 | 💾 | **Local history & export** | Save, reload, compare, and export every bout. Nothing leaves your machine. |
 
 ---
