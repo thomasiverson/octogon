@@ -12,12 +12,14 @@ interface AgentGridProps {
   columns: Columns;
   titleFor: (id: string) => TitleInfo;
   board?: AgentLeaderboard;
+  /** Anonymized blind run: hide identities, metrics, and the leaderboard until reveal. */
+  blind?: boolean;
   readOnly?: boolean;
   onApply: (modelId: string) => void;
   onPreview: (modelId: string) => void;
 }
 
-export function AgentGrid({ order, columns, titleFor, board, readOnly, onApply, onPreview }: AgentGridProps) {
+export function AgentGrid({ order, columns, titleFor, board, blind, readOnly, onApply, onPreview }: AgentGridProps) {
   if (order.length === 0) {
     return (
       <div className="flex min-h-[200px] items-center justify-center rounded border border-dashed border-vscode-border p-8 text-center text-sm text-vscode-desc">
@@ -38,6 +40,7 @@ export function AgentGrid({ order, columns, titleFor, board, readOnly, onApply, 
             subtitle={info.subtitle}
             column={col}
             board={board}
+            blind={blind}
             readOnly={readOnly}
             onApply={() => onApply(id)}
             onPreview={() => onPreview(id)}

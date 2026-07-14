@@ -5,6 +5,16 @@ All notable changes to **Octogon** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] — 2026-07-14
+
+### Changed
+- **Blind test works with Agent mode too** — **Blind** is now an independent toggle beside the
+  **Ask / Agent** switch instead of a third mode, so you can run a **blind agent bake-off**: each
+  model works in its own sandbox while its identity, cost, and the winner leaderboard stay hidden.
+  Review the anonymized diffs and narrations, then **Reveal** (or apply a winner) to unveil
+  identities, metrics, the recommended winner, and the apply controls — keeping the choice
+  bias-free. Ask-mode blind tests are unchanged.
+
 ## [0.6.0] — 2026-07-14
 
 ### Added

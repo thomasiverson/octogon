@@ -10,6 +10,8 @@ interface AgentColumnProps {
   subtitle?: string;
   column: ColumnState;
   board?: AgentLeaderboard;
+  /** Anonymized blind run: hide identity, metrics, ranking, and apply until reveal. */
+  blind?: boolean;
   readOnly?: boolean;
   onApply?: () => void;
   onPreview?: () => void;
@@ -39,11 +41,11 @@ const toolIcon: Record<string, string> = {
   finish: '✅'
 };
 
-export function AgentColumn({ title, subtitle, column, board, readOnly, onApply, onPreview }: AgentColumnProps) {
+export function AgentColumn({ title, subtitle, column, board, blind, readOnly, onApply, onPreview }: AgentColumnProps) {
   const [showSteps, setShowSteps] = useState(false);
   const { status, text, agentResult, error, steps } = column;
   const result = agentResult;
-  const isRecommended = board?.recommended?.modelId === column.modelId;
+  const isRecommended = !blind && board?.recommended?.modelId === column.modelId;
   const cost = result?.cost;
   const verify = result?.verify;
   const diff = result?.diff;
@@ -61,10 +63,10 @@ export function AgentColumn({ title, subtitle, column, board, readOnly, onApply,
             {title}
           </span>
           <div className="ml-auto flex shrink-0 items-center gap-1">
-            {isRecommended && <span title="Recommended winner">🏆</span>}
-            {board?.passedTests?.modelId === column.modelId && <span title="Tests passed">✅</span>}
-            {board?.smallestDiff?.modelId === column.modelId && <span title="Smallest diff">📏</span>}
-            {board?.cheapest?.modelId === column.modelId && <span title="Cheapest">💰</span>}
+            {!blind && isRecommended && <span title="Recommended winner">🏆</span>}
+            {!blind && board?.passedTests?.modelId === column.modelId && <span title="Tests passed">✅</span>}
+            {!blind && board?.smallestDiff?.modelId === column.modelId && <span title="Smallest diff">📏</span>}
+            {!blind && board?.cheapest?.modelId === column.modelId && <span title="Cheapest">💰</span>}
           </div>
         </div>
         {subtitle && <span className="truncate text-[11px] text-vscode-desc">{subtitle}</span>}
@@ -95,7 +97,7 @@ export function AgentColumn({ title, subtitle, column, board, readOnly, onApply,
                 value={`${formatTokens(result.tokens.input)} / ${formatTokens(result.tokens.output)}`}
                 title="Approx input context / generated tokens"
               />
-              {cost && cost.rateAvailable && (
+              {!blind && cost && cost.rateAvailable && (
                 <>
                   <Badge label="cost" value={formatUsd(cost.usd)} tone="info" title="Estimated token cost" />
                   <Badge
@@ -202,7 +204,7 @@ export function AgentColumn({ title, subtitle, column, board, readOnly, onApply,
           </div>
         )}
 
-        {!readOnly && result && result.canApply && result.filesChanged > 0 && (
+        {!readOnly && !blind && result && result.canApply && result.filesChanged > 0 && (
           <div className="flex gap-1.5">
             <button
               className="flex-1 rounded border border-vscode-border px-2 py-1 text-[11px] hover:bg-vscode-list-hover"
