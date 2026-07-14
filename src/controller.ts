@@ -292,14 +292,22 @@ export class OctogonController {
 
     const blind = options.mode === 'blind';
     if (blind) {
-      // The extension — not the user — picks the models for a blind test, so
-      // there is no selection bias. pickRandom returns them already shuffled.
-      const picked = await this.registry.pickRandom(this.blindModelCount());
+      // In a blind test the identities stay hidden while you judge. The user may
+      // either let Octogon pick random contestants (no ids sent) or choose them
+      // — either way we shuffle so the column order (Model A, B, …) never leaks
+      // which model is which.
+      const picked =
+        modelIds.length > 0
+          ? await this.registry.pickFrom(modelIds)
+          : await this.registry.pickRandom(this.blindModelCount());
       if (picked.length < 2) {
         await this.panel.post({
           type: 'notice',
           level: 'warn',
-          message: 'Need at least 2 available models for a blind test.'
+          message:
+            modelIds.length > 0
+              ? 'Pick at least 2 available models for a blind test.'
+              : 'Need at least 2 available models for a blind test.'
         });
         return;
       }

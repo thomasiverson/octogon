@@ -14,6 +14,9 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   or hit **Reveal** — to unveil identities, metrics, and the leaderboard. Winner picks and star
   ratings feed history and model stats **bias-free**; the history list tags blind runs, and the
   LLM judge / verification unlock after the reveal.
+  - **Pick your own contestants** — a **Contestants** toggle in Blind mode lets you switch from
+    **Auto (random)** to **Pick models** and hand-pick which models compete. Your choices are
+    shuffled and stay anonymous until the reveal, so the judging is still bias-free.
 
 ## [0.4.0] — 2026-07-01
 
