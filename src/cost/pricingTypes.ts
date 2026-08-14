@@ -6,13 +6,14 @@ export interface ModelRate {
   input: number;
   cachedInput: number;
   output: number;
-  /** Anthropic cache-write rate (optional). */
+  /** Cache-write rate for models that bill cache population separately. */
   cacheWrite?: number;
   /** Higher-rate tier applied above an input-token threshold. */
   longContext?: {
     thresholdInputTokens: number;
     input: number;
     cachedInput: number;
+    cacheWrite?: number;
     output: number;
   };
 }

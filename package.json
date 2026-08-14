@@ -163,8 +163,11 @@
     "watch:extension": "node esbuild.js --watch",
     "watch:webview": "vite build --watch --config webview/vite.config.ts",
     "compile": "tsc --noEmit -p ./ && tsc --noEmit -p ./webview",
-    "test": "vitest run",
+    "test": "npm run test:unit && npm run test:pricing-updater",
+    "test:unit": "vitest run",
+    "test:pricing-updater": "node --test scripts/test-update-model-pricing.mjs",
     "test:watch": "vitest",
+    "update:pricing": "node scripts/update-model-pricing.mjs",
     "package": "vsce package --no-dependencies"
   },
   "devDependencies": {

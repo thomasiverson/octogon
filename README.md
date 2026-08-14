@@ -137,7 +137,7 @@ Octogon exists to help you *spend less*, so it's honest about spending:
 - Octogon computes cost directly from that model: `inputTokens × inputRate + outputTokens × outputRate`, shown in **USD and credits**.
 - **Comparing N models = N runs.** You pay for the tokens each model consumes; the LLM judge and Agent Mode add more. The pre-run preview and optional budget guard are there so it's always your call.
 
-The rate table is **bundled, dated, and overridable** via `octogon.pricingTablePath` — see [pricing/model-pricing.json](pricing/model-pricing.json). You can also pull an updated table with **Octogon: Refresh Pricing** (opt-in, fetches from `octogon.pricingUrl`; no other network calls).
+The rate table is **bundled, dated, and overridable** via `octogon.pricingTablePath` — see [pricing/model-pricing.json](pricing/model-pricing.json). A daily GitHub Actions workflow synchronizes that file from GitHub Docs when its structured pricing data changes. You can pull the latest published table with **Octogon: Refresh Pricing** (opt-in, fetches from `octogon.pricingUrl`; no other network calls).
 
 > Rates change often. The JSON carries a `lastUpdated` date and a `source` URL — re-verify against GitHub's official **Models and pricing** page.
 

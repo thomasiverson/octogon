@@ -5,6 +5,13 @@ All notable changes to **Octogon** are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this
 project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Daily synchronization of `pricing/model-pricing.json` from GitHub Docs, allowing the existing
+  **Octogon: Refresh Pricing** command to retrieve newly published model rates without an extension
+  release.
+
 ## [0.7.0] — 2026-07-14
 
 ### Changed
