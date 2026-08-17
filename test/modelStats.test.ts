@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { computeModelStats, averageOutputTokens } from '../src/store/modelStats';
+import {
+  computeModelStats,
+  averageOutputTokens,
+  estimateOutputTokens
+} from '../src/store/modelStats';
 import type { ModelResult, RunRecord } from '../src/shared/types';
 
 function result(modelId: string, over: Partial<ModelResult> = {}): ModelResult {
@@ -71,6 +75,49 @@ describe('averageOutputTokens', () => {
     const avg = averageOutputTokens(records);
     expect(avg.get('a')).toBe(200); // (100 + 300) / 2
     expect(avg.has('b')).toBe(false); // only errored -> no data
+  });
+
+  describe('estimateOutputTokens', () => {
+    it('uses a median and quartile range so outliers do not dominate', () => {
+      const outputs = [100, 200, 300, 10_000];
+      const records = outputs.map((output, index) =>
+        record({
+          id: String(index),
+          results: [result('a', { tokens: { input: 10, output } })]
+        })
+      );
+
+      expect(estimateOutputTokens(records).get('a')).toEqual({
+        expected: 250,
+        low: 175,
+        high: 2725,
+        sampleCount: 4
+      });
+    });
+
+    it('reports a single observation without inventing a range', () => {
+      const records = [
+        record({ results: [result('a', { tokens: { input: 10, output: 321 } })] })
+      ];
+      expect(estimateOutputTokens(records).get('a')).toEqual({
+        expected: 321,
+        low: 321,
+        high: 321,
+        sampleCount: 1
+      });
+    });
+
+    it('ignores errored and empty responses', () => {
+      const records = [
+        record({
+          results: [
+            result('a', { error: { message: 'failed' }, tokens: { input: 10, output: 500 } }),
+            result('b', { tokens: { input: 10, output: 0 } })
+          ]
+        })
+      ];
+      expect(estimateOutputTokens(records).size).toBe(0);
+    });
   });
 
   it('is empty when there is no history', () => {

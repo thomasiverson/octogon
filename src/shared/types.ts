@@ -115,9 +115,18 @@ export interface RunOptions {
 export interface CostEstimate {
   modelId: string;
   usd: number;
+  lowUsd: number;
+  highUsd: number;
   credits: number;
+  lowCredits: number;
+  highCredits: number;
   inputTokens: number;
+  inputTokensAvailable: boolean;
   expectedOutputTokens: number;
+  lowOutputTokens: number;
+  highOutputTokens: number;
+  outputEstimateSource: 'history' | 'configured';
+  outputSampleCount: number;
   rateAvailable: boolean;
 }
 
@@ -298,7 +307,18 @@ export type ExtensionToWebview =
   | { type: 'agentError'; runId: string; modelId: string; message: string; code?: string }
   | { type: 'agentApplied'; runId: string; modelId: string; ok: boolean; message: string }
   | { type: 'agentDiscarded'; runId: string; message: string }
-  | { type: 'costPreview'; estimates: CostEstimate[]; totalUsd: number; totalCredits: number; expectedOutputTokens: number }
+  | {
+      type: 'costPreview';
+      estimates: CostEstimate[];
+      totalUsd: number;
+      lowTotalUsd: number;
+      highTotalUsd: number;
+      totalCredits: number;
+      lowTotalCredits: number;
+      highTotalCredits: number;
+      expectedOutputTokens: number;
+      mode?: 'ask' | 'agent';
+    }
   | { type: 'judgeDone'; runId: string; scores: JudgeScore[] }
   | { type: 'judgeError'; runId: string; message: string }
   | { type: 'verifyDone'; runId: string; modelId: string; result: VerifyResult }

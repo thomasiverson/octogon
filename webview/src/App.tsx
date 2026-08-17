@@ -38,8 +38,13 @@ interface Notice {
 interface PreviewData {
   estimates: CostEstimate[];
   totalUsd: number;
+  lowTotalUsd: number;
+  highTotalUsd: number;
   totalCredits: number;
+  lowTotalCredits: number;
+  highTotalCredits: number;
   expectedOutputTokens: number;
+  mode?: 'ask' | 'agent';
 }
 
 const noticeClasses: Record<Notice['level'], string> = {
@@ -137,8 +142,13 @@ export function App() {
             setPreview({
               estimates: msg.estimates,
               totalUsd: msg.totalUsd,
+              lowTotalUsd: msg.lowTotalUsd,
+              highTotalUsd: msg.highTotalUsd,
               totalCredits: msg.totalCredits,
-              expectedOutputTokens: msg.expectedOutputTokens
+              lowTotalCredits: msg.lowTotalCredits,
+              highTotalCredits: msg.highTotalCredits,
+              expectedOutputTokens: msg.expectedOutputTokens,
+              mode: msg.mode
             });
           }
           break;
@@ -881,8 +891,13 @@ export function App() {
           <CostPreview
             estimates={preview.estimates}
             totalUsd={preview.totalUsd}
+            lowTotalUsd={preview.lowTotalUsd}
+            highTotalUsd={preview.highTotalUsd}
             totalCredits={preview.totalCredits}
+            lowTotalCredits={preview.lowTotalCredits}
+            highTotalCredits={preview.highTotalCredits}
             expectedOutputTokens={preview.expectedOutputTokens}
+            mode={preview.mode}
             nameFor={nameFor}
             onConfirm={confirmRun}
             onCancel={() => setPreview(null)}

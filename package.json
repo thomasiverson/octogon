@@ -97,7 +97,7 @@
           "type": "number",
           "default": 800,
           "minimum": 1,
-          "markdownDescription": "Assumed output tokens per model used for the **pre-run** cost estimate. The post-run cost reflects actual tokens."
+          "markdownDescription": "Fallback output tokens per model used for the **pre-run** cost estimate when no successful run history is available. The post-run cost reflects actual tokens."
         },
         "octogon.retrieval.topK": {
           "type": "number",

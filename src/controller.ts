@@ -43,7 +43,7 @@ import { runAgent, AgentCaps } from './agent/loop';
 import { rankAgents } from './agent/agentRanking';
 import { HistoryStore } from './store/historyStore';
 import { buildMarkdownSummary } from './store/exporter';
-import { computeModelStats, averageOutputTokens } from './store/modelStats';
+import { computeModelStats, estimateOutputTokens } from './store/modelStats';
 
 interface RunState {
   runId: string;
@@ -1131,8 +1131,13 @@ export class OctogonController {
         type: 'costPreview',
         estimates: [],
         totalUsd: 0,
+        lowTotalUsd: 0,
+        highTotalUsd: 0,
         totalCredits: 0,
-        expectedOutputTokens: 0
+        lowTotalCredits: 0,
+        highTotalCredits: 0,
+        expectedOutputTokens: 0,
+        mode: options.mode
       });
       return;
     }
@@ -1143,44 +1148,88 @@ export class OctogonController {
       .getConfiguration('octogon')
       .get<number>('expectedOutputTokens', 800);
 
-    // Sharpen the output estimate per model using its historical average output
-    // (falling back to the configured default for models with no run history).
-    const historicalOutput = averageOutputTokens(await this.loadHistoryRecords());
+    // Use a robust historical median and quartile range instead of allowing an
+    // unusually long response to skew every future preview.
+    const historicalOutput = estimateOutputTokens(await this.loadHistoryRecords());
 
     // Same context the run will use, so the preview reflects context tokens too.
     const context = await this.buildContext(prompt, models, options);
 
     const estimates: CostEstimate[] = [];
     let totalUsd = 0;
+    let lowTotalUsd = 0;
+    let highTotalUsd = 0;
     let totalCredits = 0;
+    let lowTotalCredits = 0;
+    let highTotalCredits = 0;
 
     for (const model of models) {
+      const identity = { id: model.id, family: model.family, name: model.name };
+      const rateAvailable = Boolean(table && resolveRate(table, identity));
       let inputTokens = 0;
+      let inputTokensAvailable = true;
       try {
         inputTokens = await countMessageTokens(model, buildMessages(prompt, context.block));
       } catch (err) {
         console.warn('[octogon] countTokens failed during preview:', err);
+        inputTokensAvailable = false;
       }
-      const expectedOutputTokens = historicalOutput.get(model.id) ?? defaultOutputTokens;
-      const cost = table
+      const historical = historicalOutput.get(model.id);
+      const expectedOutputTokens = historical?.expected ?? defaultOutputTokens;
+      const lowOutputTokens = historical?.low ?? defaultOutputTokens;
+      const highOutputTokens = historical?.high ?? defaultOutputTokens;
+      const cost = table && inputTokensAvailable
         ? tokenCost(
             table,
-            { id: model.id, family: model.family, name: model.name },
+            identity,
             inputTokens,
             expectedOutputTokens
           )
         : undefined;
+      const lowCost = table && inputTokensAvailable
+        ? tokenCost(
+            table,
+            identity,
+            inputTokens,
+            lowOutputTokens
+          )
+        : undefined;
+      const highCost = table && inputTokensAvailable
+        ? tokenCost(
+            table,
+            identity,
+            inputTokens,
+            highOutputTokens
+          )
+        : undefined;
       const usd = cost?.usd ?? 0;
+      const lowUsd = lowCost?.usd ?? 0;
+      const highUsd = highCost?.usd ?? 0;
       const credits = cost?.credits ?? 0;
+      const lowCredits = lowCost?.credits ?? 0;
+      const highCredits = highCost?.credits ?? 0;
       totalUsd += usd;
+      lowTotalUsd += lowUsd;
+      highTotalUsd += highUsd;
       totalCredits += credits;
+      lowTotalCredits += lowCredits;
+      highTotalCredits += highCredits;
       estimates.push({
         modelId: model.id,
         usd,
+        lowUsd,
+        highUsd,
         credits,
+        lowCredits,
+        highCredits,
         inputTokens,
+        inputTokensAvailable,
         expectedOutputTokens,
-        rateAvailable: cost?.rateAvailable ?? false
+        lowOutputTokens,
+        highOutputTokens,
+        outputEstimateSource: historical ? 'history' : 'configured',
+        outputSampleCount: historical?.sampleCount ?? 0,
+        rateAvailable
       });
     }
 
@@ -1188,8 +1237,13 @@ export class OctogonController {
       type: 'costPreview',
       estimates,
       totalUsd,
+      lowTotalUsd,
+      highTotalUsd,
       totalCredits,
-      expectedOutputTokens: defaultOutputTokens
+      lowTotalCredits,
+      highTotalCredits,
+      expectedOutputTokens: defaultOutputTokens,
+      mode: options.mode
     });
   }
 
