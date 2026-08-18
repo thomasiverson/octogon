@@ -32,7 +32,9 @@ export function CostPreview({
 }: CostPreviewProps) {
   const anyUnavailable = estimates.some((e) => !e.rateAvailable);
   const anyTokenCountUnavailable = estimates.some((e) => !e.inputTokensAvailable);
-  const hasRange = lowTotalUsd !== highTotalUsd;
+  const hasCostableEstimate = estimates.some((e) => e.rateAvailable && e.inputTokensAvailable);
+  const hasPartialCost = hasCostableEstimate && (anyUnavailable || anyTokenCountUnavailable);
+  const hasRange = hasCostableEstimate && lowTotalUsd !== highTotalUsd;
 
   return (
     <div className="rounded border border-vscode-link/50 bg-vscode-panel-bg p-3">
@@ -42,8 +44,15 @@ export function CostPreview({
           estimate
         </span>
         <span className="ml-auto text-sm">
-          ≈ <span className="font-semibold tabular-nums">{formatUsd(totalUsd)}</span>
-          <span className="text-vscode-desc"> · {formatCredits(totalCredits)} credits</span>
+          {hasCostableEstimate ? (
+            <>
+              {hasPartialCost && <span className="text-vscode-desc">Known subtotal: </span>}≈{' '}
+              <span className="font-semibold tabular-nums">{formatUsd(totalUsd)}</span>
+              <span className="text-vscode-desc"> · {formatCredits(totalCredits)} credits</span>
+            </>
+          ) : (
+            <span className="font-semibold text-yellow-500">cost unavailable</span>
+          )}
         </span>
       </div>
 
@@ -55,7 +64,8 @@ export function CostPreview({
 
       {hasRange && (
         <p className="mt-1 text-[11px] text-vscode-desc">
-          Likely range: {formatUsd(lowTotalUsd)}–{formatUsd(highTotalUsd)} ·{' '}
+          {hasPartialCost ? 'Known subtotal range' : 'Likely range'}: {formatUsd(lowTotalUsd)}–
+          {formatUsd(highTotalUsd)} ·{' '}
           {formatCredits(lowTotalCredits)}–{formatCredits(highTotalCredits)} credits
         </p>
       )}
