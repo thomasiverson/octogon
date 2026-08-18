@@ -4,8 +4,13 @@ import { formatCredits, formatTokens, formatUsd } from '../format';
 interface CostPreviewProps {
   estimates: CostEstimate[];
   totalUsd: number;
+  lowTotalUsd: number;
+  highTotalUsd: number;
   totalCredits: number;
+  lowTotalCredits: number;
+  highTotalCredits: number;
   expectedOutputTokens: number;
+  mode?: 'ask' | 'agent';
   nameFor: (id: string) => string;
   onConfirm: () => void;
   onCancel: () => void;
@@ -14,13 +19,22 @@ interface CostPreviewProps {
 export function CostPreview({
   estimates,
   totalUsd,
+  lowTotalUsd,
+  highTotalUsd,
   totalCredits,
+  lowTotalCredits,
+  highTotalCredits,
   expectedOutputTokens,
+  mode,
   nameFor,
   onConfirm,
   onCancel
 }: CostPreviewProps) {
   const anyUnavailable = estimates.some((e) => !e.rateAvailable);
+  const anyTokenCountUnavailable = estimates.some((e) => !e.inputTokensAvailable);
+  const hasCostableEstimate = estimates.some((e) => e.rateAvailable && e.inputTokensAvailable);
+  const hasPartialCost = hasCostableEstimate && (anyUnavailable || anyTokenCountUnavailable);
+  const hasRange = hasCostableEstimate && lowTotalUsd !== highTotalUsd;
 
   return (
     <div className="rounded border border-vscode-link/50 bg-vscode-panel-bg p-3">
@@ -30,8 +44,15 @@ export function CostPreview({
           estimate
         </span>
         <span className="ml-auto text-sm">
-          ≈ <span className="font-semibold tabular-nums">{formatUsd(totalUsd)}</span>
-          <span className="text-vscode-desc"> · {formatCredits(totalCredits)} credits</span>
+          {hasCostableEstimate ? (
+            <>
+              {hasPartialCost && <span className="text-vscode-desc">Known subtotal: </span>}≈{' '}
+              <span className="font-semibold tabular-nums">{formatUsd(totalUsd)}</span>
+              <span className="text-vscode-desc"> · {formatCredits(totalCredits)} credits</span>
+            </>
+          ) : (
+            <span className="font-semibold text-yellow-500">cost unavailable</span>
+          )}
         </span>
       </div>
 
@@ -41,18 +62,45 @@ export function CostPreview({
         exact cost is shown after the run.
       </p>
 
+      {hasRange && (
+        <p className="mt-1 text-[11px] text-vscode-desc">
+          {hasPartialCost ? 'Known subtotal range' : 'Likely range'}: {formatUsd(lowTotalUsd)}–
+          {formatUsd(highTotalUsd)} ·{' '}
+          {formatCredits(lowTotalCredits)}–{formatCredits(highTotalCredits)} credits
+        </p>
+      )}
+
       <div className="mt-2 flex flex-col gap-1">
         {estimates.map((e) => (
           <div key={e.modelId} className="flex items-center gap-2 text-xs">
             <span className="flex-1 truncate">{nameFor(e.modelId)}</span>
-            <span className="tabular-nums text-vscode-desc">{formatTokens(e.inputTokens)} in</span>
-            <span className="tabular-nums text-vscode-desc">~{formatTokens(e.expectedOutputTokens)} out</span>
-            {e.rateAvailable ? (
+            <span className="tabular-nums text-vscode-desc">
+              {e.inputTokensAvailable ? `${formatTokens(e.inputTokens)} in` : 'input count n/a'}
+            </span>
+            <span
+              className="tabular-nums text-vscode-desc"
+              title={
+                e.outputEstimateSource === 'history'
+                  ? `Median and likely range from ${e.outputSampleCount} successful prior run${e.outputSampleCount === 1 ? '' : 's'}`
+                  : `Configured default (${formatTokens(expectedOutputTokens)} tokens)`
+              }
+            >
+              ~{formatTokens(e.expectedOutputTokens)} out
+              {e.lowOutputTokens !== e.highOutputTokens &&
+                ` (${formatTokens(e.lowOutputTokens)}–${formatTokens(e.highOutputTokens)})`}
+              {' · '}
+              {e.outputEstimateSource === 'history'
+                ? `${e.outputSampleCount} prior run${e.outputSampleCount === 1 ? '' : 's'}`
+                : 'configured default'}
+            </span>
+            {!e.rateAvailable ? (
+              <span className="text-yellow-500">rate n/a</span>
+            ) : !e.inputTokensAvailable ? (
+              <span className="text-yellow-500">cost unavailable</span>
+            ) : (
               <span className="tabular-nums">
                 {formatUsd(e.usd)} · {formatCredits(e.credits)} cr
               </span>
-            ) : (
-              <span className="text-yellow-500">rate n/a</span>
             )}
           </div>
         ))}
@@ -61,6 +109,18 @@ export function CostPreview({
       {anyUnavailable && (
         <p className="mt-1 text-[11px] text-yellow-500">
           Some models are missing from the pricing table; their cost is excluded from the total.
+        </p>
+      )}
+
+      {anyTokenCountUnavailable && (
+        <p className="mt-1 text-[11px] text-yellow-500">
+          Input token counting failed for some models; their cost is excluded rather than shown as zero.
+        </p>
+      )}
+
+      {mode === 'agent' && (
+        <p className="mt-1 text-[11px] text-yellow-500">
+          Agent mode can make multiple model calls. This preview covers one response; the full run may cost more.
         </p>
       )}
 

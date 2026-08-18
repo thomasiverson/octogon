@@ -55,7 +55,7 @@ Octogon replaces the guesswork with a head-to-head bout. One prompt goes out to 
 ## Why you'll reach for it
 
 - **See the tradeoff, not the hype.** Cost, latency, and quality for each model, on the same task, at the same time — the real picture a benchmark can't give you.
-- **Know the price *before* you pay it.** A pre-run cost preview estimates USD and AI credits for the whole bout, so nothing surprises your bill. The post-run number is exact.
+- **Know the price *before* you pay it.** A pre-run cost preview uses each model's tokenizer for input and a robust historical output range when available, so nothing surprises your bill. The post-run number uses the completed response's token count.
 - **Judge quality your way.** Rate responses with stars, pick a winner, bring in an LLM-as-judge, or actually run the generated code against your build and tests.
 - **Your models, your repo, your subscription.** Octogon reads the *exact* models in your Copilot picker and works against any open repository — with **no extra API keys** on the core path.
 - **Keep the receipts.** Every bout can be saved to local history, reloaded, compared, and exported to JSON or Markdown. Build a body of evidence for how models perform on *your* work.
@@ -68,7 +68,7 @@ Octogon replaces the guesswork with a head-to-head bout. One prompt goes out to 
 | --- | --- | --- |
 | ⚔️ | **Side-by-side bouts** | One prompt → N models, streamed in parallel, one column each. |
 | 💸 | **Real cost, not estimates-of-estimates** | Token cost in **USD and GitHub AI credits** (1 credit = $0.01) from a dated, overridable pricing table. |
-| 🔮 | **Pre-run cost preview** | Approve the spend before a single token is sent. |
+| 🔮 | **Pre-run cost preview** | Review the expected cost, likely range, and estimate source before a single token is sent. |
 | 🏆 | **Live leaderboard** | Cheapest, fastest, and highest-rated — called the moment the round ends. |
 | ⭐ | **Quality scoring** | Manual stars, pick-a-winner, and an opt-in **LLM-as-judge** with rubric + optional reference answer. |
 | 📎 | **Repo-aware context** | Active file, selection, attached files, and lightweight retrieval — token-budgeted and shown transparently per run. |
@@ -204,7 +204,7 @@ Open that folder, run the command, attach a couple of files (or lean on retrieva
 | --- | --- | --- |
 | `octogon.pricingTablePath` | Override path for the token pricing JSON | bundled |
 | `octogon.pricingUrl` | Source URL for **Octogon: Refresh Pricing** (opt-in fetch) | repo raw JSON |
-| `octogon.expectedOutputTokens` | Assumed output tokens for the pre-run estimate | `800` |
+| `octogon.expectedOutputTokens` | Output-token fallback when a model has no successful run history | `800` |
 | `octogon.retrieval.topK` | Snippets pulled by lightweight retrieval | `5` |
 | `octogon.judgeModelId` | Default LLM-as-judge model | unset |
 | `octogon.verifyCommand` | Build/test command for automated verification | unset |

@@ -132,3 +132,49 @@ export function averageOutputTokens(records: RunRecord[]): Map<string, number> {
   }
   return avg;
 }
+
+export interface OutputTokenEstimate {
+  expected: number;
+  low: number;
+  high: number;
+  sampleCount: number;
+}
+
+function percentile(sorted: number[], fraction: number): number {
+  if (sorted.length === 1) return sorted[0];
+  const index = (sorted.length - 1) * fraction;
+  const lower = Math.floor(index);
+  const upper = Math.ceil(index);
+  const weight = index - lower;
+  return Math.round(sorted[lower] * (1 - weight) + sorted[upper] * weight);
+}
+
+/**
+ * Robust observed output-token estimates per model. The median limits the
+ * impact of unusually long responses; the quartiles provide a likely range.
+ */
+export function estimateOutputTokens(records: RunRecord[]): Map<string, OutputTokenEstimate> {
+  const samples = new Map<string, number[]>();
+  for (const record of records) {
+    for (const result of record.results) {
+      if (result.error) continue;
+      const outputTokens = result.tokens?.output ?? 0;
+      if (outputTokens <= 0) continue;
+      const modelSamples = samples.get(result.modelId) ?? [];
+      modelSamples.push(outputTokens);
+      samples.set(result.modelId, modelSamples);
+    }
+  }
+
+  const estimates = new Map<string, OutputTokenEstimate>();
+  for (const [modelId, values] of samples) {
+    values.sort((a, b) => a - b);
+    estimates.set(modelId, {
+      expected: percentile(values, 0.5),
+      low: percentile(values, 0.25),
+      high: percentile(values, 0.75),
+      sampleCount: values.length
+    });
+  }
+  return estimates;
+}
