@@ -7,10 +7,20 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-08-18
+
 ### Added
 - Daily synchronization of `pricing/model-pricing.json` from GitHub Docs, allowing the existing
   **Octogon: Refresh Pricing** command to retrieve newly published model rates without an extension
   release.
+- **More trustworthy pre-run estimates** — the cost preview counts input with each selected model's
+  tokenizer and estimates output with the median and likely range from successful run history,
+  falling back to `octogon.expectedOutputTokens`. It discloses the estimate source and never
+  presents a failed input token count as a zero-cost estimate.
+
+### Changed
+- Agent mode now explains that its iterative model calls can cost more than the single-response
+  preview.
 
 ## [0.7.0] — 2026-07-14
 
@@ -49,10 +59,6 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with a one-click **refresh**. A new **Octogon: Refresh Pricing** command + `octogon.pricingUrl`
   fetch an updated table from a URL you control. The fetch is **opt-in and user-initiated** — the
   only outbound request Octogon makes. Load precedence is override path → refreshed cache → bundled.
-- **Sharper pre-run estimate** — the cost preview counts input with each selected model's tokenizer
-  and estimates output with the median and likely range from successful run history, falling back to
-  `octogon.expectedOutputTokens`. It discloses the estimate source and never presents a failed input
-  token count as a zero-cost estimate.
 - **Activation smoke test** — a Vitest test that mocks the host and verifies the extension registers
   its commands and opens the panel.
 
