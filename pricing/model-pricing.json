@@ -1,6 +1,6 @@
 {
   "source": "GitHub Copilot - Models and pricing (https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)",
-  "lastUpdated": "2026-08-22",
+  "lastUpdated": "2026-09-02",
   "billingModel": "usage-based (effective 2026-06-01)",
   "currency": "USD",
   "unit": "per_1m_tokens",
@@ -186,6 +186,13 @@
       "provider": "Anthropic",
       "input": 10,
       "cachedInput": 1,
+      "output": 50,
+      "cacheWrite": 12.5
+    },
+    "claude-fable-5.1": {
+      "provider": "Anthropic",
+      "input": 10,
+      "cachedInput": 0.25,
       "output": 50,
       "cacheWrite": 12.5
     },
