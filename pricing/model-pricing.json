@@ -1,6 +1,6 @@
 {
   "source": "GitHub Copilot - Models and pricing (https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)",
-  "lastUpdated": "2026-09-02",
+  "lastUpdated": "2026-09-04",
   "billingModel": "usage-based (effective 2026-06-01)",
   "currency": "USD",
   "unit": "per_1m_tokens",
@@ -221,6 +221,12 @@
       "output": 3.75
     },
     "gemini-3.7-flash": {
+      "provider": "Google",
+      "input": 0.75,
+      "cachedInput": 0.075,
+      "output": 3.75
+    },
+    "gemini-3.8-flash": {
       "provider": "Google",
       "input": 0.75,
       "cachedInput": 0.075,
