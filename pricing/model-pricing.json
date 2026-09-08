@@ -1,6 +1,6 @@
 {
   "source": "GitHub Copilot - Models and pricing (https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)",
-  "lastUpdated": "2026-09-04",
+  "lastUpdated": "2026-09-08",
   "billingModel": "usage-based (effective 2026-06-01)",
   "currency": "USD",
   "unit": "per_1m_tokens",
@@ -79,16 +79,16 @@
     },
     "gpt-5.6-sol": {
       "provider": "OpenAI",
-      "input": 2,
-      "cachedInput": 0.2,
-      "output": 10,
-      "cacheWrite": 2.5,
+      "input": 4,
+      "cachedInput": 0.4,
+      "output": 20,
+      "cacheWrite": 5,
       "longContext": {
         "thresholdInputTokens": 272000,
-        "input": 4,
-        "cachedInput": 0.4,
-        "output": 15,
-        "cacheWrite": 5
+        "input": 8,
+        "cachedInput": 0.8,
+        "output": 30,
+        "cacheWrite": 10
       }
     },
     "gpt-5.6-terra": {
@@ -105,6 +105,20 @@
         "cacheWrite": 5
       }
     },
+    "gpt-6-astra": {
+      "provider": "OpenAI",
+      "input": 10,
+      "cachedInput": 1,
+      "output": 50,
+      "cacheWrite": 12.5,
+      "longContext": {
+        "thresholdInputTokens": 272000,
+        "input": 20,
+        "cachedInput": 2,
+        "output": 75,
+        "cacheWrite": 25
+      }
+    },
     "claude-haiku-4.5": {
       "provider": "Anthropic",
       "input": 1,
@@ -119,33 +133,12 @@
       "output": 15,
       "cacheWrite": 3.75
     },
-    "claude-sonnet-4.5": {
-      "provider": "Anthropic",
-      "input": 3,
-      "cachedInput": 0.3,
-      "output": 15,
-      "cacheWrite": 3.75
-    },
     "claude-sonnet-4.6": {
       "provider": "Anthropic",
       "input": 3,
       "cachedInput": 0.3,
       "output": 15,
       "cacheWrite": 3.75
-    },
-    "claude-opus-4.5": {
-      "provider": "Anthropic",
-      "input": 5,
-      "cachedInput": 0.5,
-      "output": 25,
-      "cacheWrite": 6.25
-    },
-    "claude-opus-4.6": {
-      "provider": "Anthropic",
-      "input": 5,
-      "cachedInput": 0.5,
-      "output": 25,
-      "cacheWrite": 6.25
     },
     "claude-opus-4.7": {
       "provider": "Anthropic",
@@ -195,18 +188,6 @@
       "cachedInput": 0.25,
       "output": 50,
       "cacheWrite": 12.5
-    },
-    "gemini-3.1-pro": {
-      "provider": "Google",
-      "input": 2,
-      "cachedInput": 0.2,
-      "output": 12,
-      "longContext": {
-        "thresholdInputTokens": 200000,
-        "input": 4,
-        "cachedInput": 0.4,
-        "output": 18
-      }
     },
     "gemini-3.5-flash": {
       "provider": "Google",
@@ -267,12 +248,6 @@
       "input": 0.2,
       "cachedInput": 0.02,
       "output": 1.2
-    },
-    "raptor-mini": {
-      "provider": "GitHub (fine-tuned)",
-      "input": 0.25,
-      "cachedInput": 0.025,
-      "output": 2
     },
     "kimi-k2.7-code": {
       "provider": "Moonshot AI",

@@ -92,9 +92,17 @@ describe('bundled pricing table', () => {
     expect(table.aiCreditUsd).toBe(0.01);
   });
 
-  it('honors the Gemini 3.1 Pro long-context threshold', () => {
-    const above = tokenCost(table, { family: 'gemini-3.1-pro' }, 250_000, 0);
+  it('honors a bundled model long-context threshold', () => {
+    const entry = Object.entries(table.models).find(([, rate]) => rate.longContext);
+    if (!entry) throw new Error('Bundled pricing table has no long-context model');
+
+    const [key, rate] = entry;
+    const longContext = rate.longContext;
+    if (!longContext) throw new Error(`Bundled pricing for ${key} has no long-context tier`);
+
+    const inputTokens = longContext.thresholdInputTokens + 1;
+    const above = tokenCost(table, { family: key }, inputTokens, 0);
     expect(above.longContext).toBe(true);
-    expect(above.inputUsd).toBeCloseTo((250_000 / 1e6) * 4.0);
+    expect(above.inputUsd).toBeCloseTo((inputTokens / 1e6) * longContext.input);
   });
 });
