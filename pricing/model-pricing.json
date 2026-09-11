@@ -1,6 +1,6 @@
 {
   "source": "GitHub Copilot - Models and pricing (https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)",
-  "lastUpdated": "2026-09-08",
+  "lastUpdated": "2026-09-11",
   "billingModel": "usage-based (effective 2026-06-01)",
   "currency": "USD",
   "unit": "per_1m_tokens",
@@ -236,12 +236,6 @@
         "cachedInput": 1,
         "output": 12
       }
-    },
-    "mai-code-1-flash": {
-      "provider": "Microsoft",
-      "input": 0.75,
-      "cachedInput": 0.075,
-      "output": 4.5
     },
     "mai-code-1.1-flash": {
       "provider": "Microsoft",
