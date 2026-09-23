@@ -1,6 +1,6 @@
 {
   "source": "GitHub Copilot - Models and pricing (https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)",
-  "lastUpdated": "2026-09-22",
+  "lastUpdated": "2026-09-23",
   "billingModel": "usage-based (effective 2026-06-01)",
   "currency": "USD",
   "unit": "per_1m_tokens",
@@ -119,6 +119,34 @@
         "cacheWrite": 25
       }
     },
+    "gpt-6-luna": {
+      "provider": "OpenAI",
+      "input": 0.1,
+      "cachedInput": 0.01,
+      "output": 0.5,
+      "cacheWrite": 0.125,
+      "longContext": {
+        "thresholdInputTokens": 272000,
+        "input": 0.2,
+        "cachedInput": 0.02,
+        "output": 0.75,
+        "cacheWrite": 0.25
+      }
+    },
+    "gpt-6-sol": {
+      "provider": "OpenAI",
+      "input": 2,
+      "cachedInput": 0.2,
+      "output": 10,
+      "cacheWrite": 2.5,
+      "longContext": {
+        "thresholdInputTokens": 272000,
+        "input": 4,
+        "cachedInput": 0.4,
+        "output": 15,
+        "cacheWrite": 5
+      }
+    },
     "claude-haiku-4.5": {
       "provider": "Anthropic",
       "input": 1,
@@ -160,6 +188,13 @@
       "cachedInput": 0.5,
       "output": 25,
       "cacheWrite": 6.25
+    },
+    "claude-opus-5.5": {
+      "provider": "Anthropic",
+      "input": 4,
+      "cachedInput": 0.2,
+      "output": 20,
+      "cacheWrite": 5
     },
     "claude-sonnet-5": {
       "provider": "Anthropic",
