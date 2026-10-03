@@ -1,6 +1,6 @@
 {
   "source": "GitHub Copilot - Models and pricing (https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)",
-  "lastUpdated": "2026-09-30",
+  "lastUpdated": "2026-10-03",
   "billingModel": "usage-based (effective 2026-06-01)",
   "currency": "USD",
   "unit": "per_1m_tokens",
@@ -182,13 +182,6 @@
       "output": 15,
       "cacheWrite": 3.75
     },
-    "claude-opus-4.7": {
-      "provider": "Anthropic",
-      "input": 5,
-      "cachedInput": 0.5,
-      "output": 25,
-      "cacheWrite": 6.25
-    },
     "claude-opus-4.8": {
       "provider": "Anthropic",
       "input": 5,
@@ -245,18 +238,6 @@
       "output": 50,
       "cacheWrite": 12.5
     },
-    "gemini-3.5-flash": {
-      "provider": "Google",
-      "input": 1.5,
-      "cachedInput": 0.15,
-      "output": 9
-    },
-    "gemini-3.6-flash": {
-      "provider": "Google",
-      "input": 0.75,
-      "cachedInput": 0.075,
-      "output": 3.75
-    },
     "gemini-3.7-flash": {
       "provider": "Google",
       "input": 0.75,
@@ -310,12 +291,6 @@
       "input": 0.2,
       "cachedInput": 0.02,
       "output": 1.2
-    },
-    "kimi-k2.7-code": {
-      "provider": "Moonshot AI",
-      "input": 0.95,
-      "cachedInput": 0.19,
-      "output": 4
     },
     "kimi-k3": {
       "provider": "Moonshot AI",
