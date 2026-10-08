@@ -1,6 +1,6 @@
 {
   "source": "GitHub Copilot - Models and pricing (https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)",
-  "lastUpdated": "2026-10-03",
+  "lastUpdated": "2026-10-08",
   "billingModel": "usage-based (effective 2026-06-01)",
   "currency": "USD",
   "unit": "per_1m_tokens",
@@ -168,6 +168,20 @@
       "output": 5,
       "cacheWrite": 1.25
     },
+    "claude-haiku-5.5": {
+      "provider": "Anthropic",
+      "input": 0.1,
+      "cachedInput": 0.01,
+      "output": 0.5,
+      "cacheWrite": 0.125,
+      "longContext": {
+        "thresholdInputTokens": 100000,
+        "input": 0.5,
+        "cachedInput": 0.05,
+        "output": 2.5,
+        "cacheWrite": 0.625
+      }
+    },
     "claude-sonnet-4": {
       "provider": "Anthropic",
       "input": 3,
@@ -213,7 +227,7 @@
     "claude-sonnet-5.5": {
       "provider": "Anthropic",
       "input": 2,
-      "cachedInput": 0.2,
+      "cachedInput": 0.1,
       "output": 10,
       "cacheWrite": 2.5
     },
