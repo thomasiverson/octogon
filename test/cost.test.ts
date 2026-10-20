@@ -82,27 +82,50 @@ describe('bundled pricing table', () => {
     readFileSync(resolve(__dirname, '../pricing/model-pricing.json'), 'utf8')
   ) as PricingTable;
 
-  it('prices a known model from the snapshot', () => {
-    const c = tokenCost(table, { family: 'gpt-5-mini' }, 1_000_000, 0);
-    expect(c.rateAvailable).toBe(true);
-    expect(c.usd).toBeCloseTo(0.25);
+  it('contains models to validate', () => {
+    expect(Object.keys(table.models).length).toBeGreaterThan(0);
   });
 
   it('keeps 1 credit = $0.01', () => {
     expect(table.aiCreditUsd).toBe(0.01);
   });
 
-  it('honors a bundled model long-context threshold', () => {
-    const entry = Object.entries(table.models).find(([, rate]) => rate.longContext);
-    if (!entry) throw new Error('Bundled pricing table has no long-context model');
+  describe.each(Object.entries(table.models))('%s', (key, rate) => {
+    it('uses the published default rates', () => {
+      const inputTokens = Math.min(1_000_000, rate.longContext?.thresholdInputTokens ?? 1_000_000);
+      const outputTokens = 1000;
+      const c = tokenCost(table, { family: key }, inputTokens, outputTokens);
+      const inputUsd = (inputTokens / 1e6) * rate.input;
+      const outputUsd = (outputTokens / 1e6) * rate.output;
 
-    const [key, rate] = entry;
+      expect(c.rateAvailable).toBe(true);
+      expect(c.pricingKey).toBe(key);
+      expect(c.longContext).toBe(false);
+      expect(c.inputUsd).toBeCloseTo(inputUsd, 10);
+      expect(c.outputUsd).toBeCloseTo(outputUsd, 10);
+      expect(c.usd).toBeCloseTo(inputUsd + outputUsd, 10);
+      expect(c.credits).toBeCloseTo((inputUsd + outputUsd) / table.aiCreditUsd, 10);
+    });
+
     const longContext = rate.longContext;
-    if (!longContext) throw new Error(`Bundled pricing for ${key} has no long-context tier`);
+    if (longContext) {
+      it('applies long-context rates only above the published threshold', () => {
+        const outputTokens = 1000;
+        const atThreshold = tokenCost(
+          table, { family: key }, longContext.thresholdInputTokens, outputTokens
+        );
+        expect(atThreshold.longContext).toBe(false);
+        expect(atThreshold.inputUsd).toBeCloseTo(
+          (longContext.thresholdInputTokens / 1e6) * rate.input, 10
+        );
+        expect(atThreshold.outputUsd).toBeCloseTo((outputTokens / 1e6) * rate.output, 10);
 
-    const inputTokens = longContext.thresholdInputTokens + 1;
-    const above = tokenCost(table, { family: key }, inputTokens, 0);
-    expect(above.longContext).toBe(true);
-    expect(above.inputUsd).toBeCloseTo((inputTokens / 1e6) * longContext.input);
+        const inputTokens = longContext.thresholdInputTokens + 1;
+        const above = tokenCost(table, { family: key }, inputTokens, outputTokens);
+        expect(above.longContext).toBe(true);
+        expect(above.inputUsd).toBeCloseTo((inputTokens / 1e6) * longContext.input, 10);
+        expect(above.outputUsd).toBeCloseTo((outputTokens / 1e6) * longContext.output, 10);
+      });
+    }
   });
 });

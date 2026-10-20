@@ -7,6 +7,10 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- Pricing-update validation now checks each bundled model's published rates and long-context
+  threshold instead of requiring specific models or fixed prices that upstream may remove or change.
+
 ## [0.8.0] — 2026-08-18
 
 ### Added
