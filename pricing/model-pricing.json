@@ -1,6 +1,6 @@
 {
   "source": "GitHub Copilot - Models and pricing (https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)",
-  "lastUpdated": "2026-10-14",
+  "lastUpdated": "2026-10-20",
   "billingModel": "usage-based (effective 2026-06-01)",
   "currency": "USD",
   "unit": "per_1m_tokens",
@@ -15,53 +15,17 @@
     "Keys are canonical model ids; map vscode.lm model id/family to these keys in the cost calculator."
   ],
   "models": {
-    "gpt-5-mini": {
-      "provider": "OpenAI",
-      "input": 0.25,
-      "cachedInput": 0.025,
-      "output": 2
-    },
     "gpt-5.3-codex": {
       "provider": "OpenAI",
       "input": 1.75,
       "cachedInput": 0.175,
       "output": 14
     },
-    "gpt-5.4": {
-      "provider": "OpenAI",
-      "input": 2.5,
-      "cachedInput": 0.25,
-      "output": 15,
-      "longContext": {
-        "thresholdInputTokens": 272000,
-        "input": 5,
-        "cachedInput": 0.5,
-        "output": 22.5
-      }
-    },
-    "gpt-5.4-mini": {
-      "provider": "OpenAI",
-      "input": 0.75,
-      "cachedInput": 0.075,
-      "output": 4.5
-    },
     "gpt-5.4-nano": {
       "provider": "OpenAI",
       "input": 0.2,
       "cachedInput": 0.02,
       "output": 1.25
-    },
-    "gpt-5.5": {
-      "provider": "OpenAI",
-      "input": 5,
-      "cachedInput": 0.5,
-      "output": 30,
-      "longContext": {
-        "thresholdInputTokens": 272000,
-        "input": 10,
-        "cachedInput": 1,
-        "output": 45
-      }
     },
     "gpt-5.6-luna": {
       "provider": "OpenAI",
@@ -251,12 +215,6 @@
       "cachedInput": 0.25,
       "output": 50,
       "cacheWrite": 12.5
-    },
-    "gemini-3.7-flash": {
-      "provider": "Google",
-      "input": 0.75,
-      "cachedInput": 0.075,
-      "output": 3.75
     },
     "gemini-3.8-flash": {
       "provider": "Google",
