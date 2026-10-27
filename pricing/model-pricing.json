@@ -1,6 +1,6 @@
 {
   "source": "GitHub Copilot - Models and pricing (https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)",
-  "lastUpdated": "2026-10-20",
+  "lastUpdated": "2026-10-27",
   "billingModel": "usage-based (effective 2026-06-01)",
   "currency": "USD",
   "unit": "per_1m_tokens",
@@ -123,6 +123,20 @@
         "cachedInput": 0.2,
         "output": 15,
         "cacheWrite": 5
+      }
+    },
+    "gpt-6.1-terra": {
+      "provider": "OpenAI",
+      "input": 1,
+      "cachedInput": 0.05,
+      "output": 5,
+      "cacheWrite": 1.25,
+      "longContext": {
+        "thresholdInputTokens": 272000,
+        "input": 2,
+        "cachedInput": 0.1,
+        "output": 7.5,
+        "cacheWrite": 2.5
       }
     },
     "claude-haiku-4.5": {
