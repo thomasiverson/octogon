@@ -1,6 +1,6 @@
 {
   "source": "GitHub Copilot - Models and pricing (https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)",
-  "lastUpdated": "2026-11-10",
+  "lastUpdated": "2026-11-11",
   "billingModel": "usage-based (effective 2026-06-01)",
   "currency": "USD",
   "unit": "per_1m_tokens",
@@ -244,6 +244,12 @@
       "output": 3.75
     },
     "gemini-4-argon": {
+      "provider": "Google",
+      "input": 2,
+      "cachedInput": 0.1,
+      "output": 10
+    },
+    "gemini-4-carbon": {
       "provider": "Google",
       "input": 2,
       "cachedInput": 0.1,
