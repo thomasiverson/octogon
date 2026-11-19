@@ -1,6 +1,6 @@
 {
   "source": "GitHub Copilot - Models and pricing (https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)",
-  "lastUpdated": "2026-11-18",
+  "lastUpdated": "2026-11-19",
   "billingModel": "usage-based (effective 2026-06-01)",
   "currency": "USD",
   "unit": "per_1m_tokens",
@@ -267,6 +267,12 @@
       "input": 1.5,
       "cachedInput": 0.075,
       "output": 7.5
+    },
+    "gemini-4-neon": {
+      "provider": "Google",
+      "input": 3,
+      "cachedInput": 0.15,
+      "output": 15
     },
     "grok-4.5": {
       "provider": "xAI",
